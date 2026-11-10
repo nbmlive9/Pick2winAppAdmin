@@ -1,0 +1,13 @@
+<main class="login-page">
+  <section class="login-intro"><a class="brand" routerLink="/">PICK<span>2</span>WIN</a><div><p class="eyebrow">ADMIN PORTAL</p><h1>Your workspace.<br>Your next win.</h1><p>Sign in to access your administration dashboard and account.</p></div><small>Pick2Win administration</small></section>
+  <section class="login-panel"><div class="login-card"><p class="eyebrow">WELCOME BACK</p><h2>Sign in to your account</h2><p class="muted">Use your administrator credentials to continue.</p>
+    <p *ngIf="expired" role="status">Your session expired. Please sign in again.</p>
+    <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="loading">
+      <label for="email">Email address</label><input id="email" type="email" formControlName="email" autocomplete="username" placeholder="you@example.com" [attr.aria-invalid]="form.controls.email.touched && form.controls.email.invalid" aria-describedby="email-error">
+      <small id="email-error" class="error" *ngIf="form.controls.email.touched && form.controls.email.invalid">Enter a valid email address.</small>
+      <label for="password">Password</label><input id="password" type="password" formControlName="password" autocomplete="current-password" placeholder="Enter your password" [attr.aria-invalid]="form.controls.password.touched && form.controls.password.invalid" aria-describedby="password-error">
+      <small id="password-error" class="error" *ngIf="form.controls.password.touched && form.controls.password.invalid">Password is required.</small>
+      <p *ngIf="error" class="error" role="alert">{{ error }}</p><button type="submit" [disabled]="loading">{{ loading ? 'Signing in…' : 'Sign in' }}</button>
+    </form><small class="muted">Access is restricted to authorized administrators.</small>
+  </div></section>
+</main>

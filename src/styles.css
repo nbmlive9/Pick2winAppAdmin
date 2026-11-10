@@ -1,1 +1,220 @@
-/* You can add global styles to this file, and also import other style files */
+:root {
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+  color:#17263b;
+  background:#f5f7fb;
+  font-synthesis:none}
+* {
+  box-sizing:border-box}
+body {
+  margin:0}
+a {
+  color:#2463dc;
+  text-decoration:none}
+button,input {
+  font:inherit}
+a:focus-visible,button:focus-visible,input:focus-visible {
+  outline:3px solid #74a9ff;
+  outline-offset:3px}
+h1 {
+  font-size:32px;
+  letter-spacing:-1px;
+  margin:12px 0}
+h2 {
+  font-size:23px;
+  letter-spacing:-.5px}
+.muted,small {
+  color:#69778a;
+  line-height:1.7}
+.eyebrow {
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:2px;
+  color:#728098}
+.brand {
+  font-size:24px;
+  font-weight:850;
+  letter-spacing:-1px;
+  color:inherit}
+.brand span {
+  color:#568cff}
+.login-page {
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:1fr 1fr}
+.login-intro {
+  background:linear-gradient(145deg,#101e36,#183a68);
+  color:#fff;
+  padding:56px;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between}
+.login-intro h1 {
+  font-size:clamp(36px,4vw,64px);
+  line-height:1.13}
+.login-intro p:not(.eyebrow) {
+  color:#c0cde0;
+  max-width:380px;
+  line-height:1.8}
+.login-intro small {
+  color:#aabbd3}
+.login-panel {
+  display:grid;
+  place-items:center;
+  padding:40px}
+.login-card {
+  max-width:420px;
+  width:100%}
+.login-card h2 {
+  font-size:29px}
+.login-card form {
+  margin:32px 0 20px}
+label {
+  display:block;
+  font-size:14px;
+  font-weight:600;
+  margin:22px 0 9px}
+input {
+  width:100%;
+  padding:14px;
+  border:1px solid #ced7e3;
+  border-radius:8px;
+  background:white}
+button {
+  width:100%;
+  background:#245edc;
+  color:white;
+  border:0;
+  padding:15px;
+  border-radius:8px;
+  margin-top:26px;
+  cursor:pointer;
+  font-weight:600}
+button:disabled {
+  opacity:.6;
+  cursor:wait}
+.error {
+  color:#b42318;
+  font-size:13px}
+.admin-shell {
+  display:flex;
+  min-height:100vh}
+.sidebar {
+  width:240px;
+  background:#12233e;
+  color:#e9effa;
+  padding:32px 24px;
+  display:flex;
+  flex-direction:column;
+  gap:36px}
+.sidebar nav {
+  display:grid;
+  gap:8px}
+.sidebar nav a {
+  color:#b6c5dc;
+  padding:14px;
+  border-radius:8px}
+.sidebar nav a.active {
+  background:#294c80;
+  color:white}
+.sidebar small {
+  margin-top:auto}
+.workspace {
+  flex:1;
+  min-width:0}
+header {
+  background:white;
+  border-bottom:1px solid #e3e8f0;
+  padding:24px 36px;
+  display:flex;
+  justify-content:space-between;
+  gap:16px;
+  font-size:14px}
+header a {
+  color:inherit}
+.badge {
+  display:inline-block;
+  border-radius:20px;
+  background:#eaf0fe;
+  color:#315fa9;
+  padding:6px 12px;
+  font-size:12px;
+  margin-left:10px}
+.page-content {
+  max-width:1200px;
+  margin:0 auto;
+  padding:40px}
+.card-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:24px;
+  margin:32px 0 24px}
+.card {
+  padding:28px;
+  background:white;
+  border:1px solid #e2e8f1;
+  border-radius:12px}
+.card p {
+  color:#69778a;
+  line-height:1.7}
+.success {
+  color:#13795b}
+.action-link {
+  display:inline-block;
+  margin-top:16px;
+  font-weight:600}
+.profile-card {
+  margin-top:28px;
+  max-width:720px}
+.profile-card .badge {
+  margin:0}
+dl {
+  display:grid;
+  grid-template-columns:160px 1fr;
+  gap:20px;
+  border-top:1px solid #e3e8f0;
+  margin-top:28px;
+  padding-top:28px}
+dt {
+  color:#69778a}
+dd {
+  margin:0;
+  overflow-wrap:anywhere}
+.message-card {
+  max-width:600px;
+  margin:15vh auto;
+  padding:32px}
+@media(max-width:760px) {
+  .login-page {
+  grid-template-columns:1fr}
+.login-intro {
+  padding:28px;
+  gap:28px}
+.login-intro h1 {
+  font-size:34px}
+.login-intro small {
+  display:none}
+.login-panel {
+  padding:32px 24px}
+.admin-shell {
+  flex-direction:column}
+.sidebar {
+  width:100%;
+  padding:20px;
+  gap:12px}
+.sidebar .eyebrow,.sidebar small {
+  display:none}
+.sidebar nav {
+  display:flex}
+.page-content {
+  padding:24px}
+.card-grid {
+  grid-template-columns:1fr}
+header {
+  padding:18px;
+  flex-wrap:wrap}
+dl {
+  grid-template-columns:1fr;
+  gap:10px}
+dd {
+  margin-bottom:12px}
+}
