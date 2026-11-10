@@ -3,4 +3,18 @@
         <a class="brand" routerLink="/admin/dashboard">PICK<span>2</span>WIN</a>
         <p class="eyebrow">WORKSPACE</p>
         <nav aria-label="Admin navigation">
-            <a routerLink="/admin/dashboard" routerLinkActive="active">Dashboard</a><a routerLink="/admin/profile" routerLinkActive="active">My profile</a></nav><small>Administration portal</small></aside><div class="workspace"><header *ngIf="auth.user$ | async as user"><span>Admin workspace</span><a routerLink="/admin/profile">{{ user.name }} <span class="badge">{{ user.role === 'super_admin' ? 'Super admin' : 'Admin' }}</span></a></header><main class="page-content"><router-outlet></router-outlet></main></div></div>
+            <a routerLink="/admin/dashboard" routerLinkActive="active">Dashboard</a>
+            <a routerLink="/admin/profile" routerLinkActive="active">My profile</a>
+        </nav>
+        <small>Administration portal</small>
+    </aside>
+        <div class="workspace">
+            <header *ngIf="auth.user$ | async as user">
+                <span>Admin workspace</span>
+                <a routerLink="/admin/profile">{{ user.name }} <span class="badge">{{ user.role === 'super_admin' ? 'Super admin' : 'Admin' }}</span></a>
+            </header>
+            <main class="page-content">
+                <router-outlet></router-outlet>
+            </main>
+        </div>
+    </div>
