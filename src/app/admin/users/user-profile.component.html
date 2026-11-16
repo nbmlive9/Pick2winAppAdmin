@@ -1,0 +1,132 @@
+<div class="user-profile-page">
+  <p class="action-notice" *ngIf="notice" role="status">{{ notice }}</p>
+
+  <div class="profile-grid">
+    <div class="left-column">
+      <section class="panel identity-panel">
+        <div class="identity-heading">
+          <div class="avatar">DF</div>
+          <div class="identity-name">
+            <div class="name-line"><h2>Daniel Foster</h2><span class="pill violet">Subscriber</span></div>
+            <p>UK-48291 · joined Sep 14, 2024</p>
+          </div>
+        </div>
+        <div class="verification-list">
+          <span class="pill green"><i></i>KYC1 Verified</span>
+          <span class="pill green"><i></i>AML Low</span>
+          <span class="pill">SoF Cleared</span>
+          <span class="pill blue">Other User</span>
+        </div>
+        <dl class="personal-details">
+          <div><dt>DOB</dt><dd>14 Mar 1991</dd></div>
+          <div><dt>Gender</dt><dd>Male</dd></div>
+          <div><dt>Email</dt><dd>d.foster@…uk <b>✓</b></dd></div>
+          <div><dt>Phone</dt><dd>+44 7700 900 412 <b>✓</b></dd></div>
+          <div><dt>Country</dt><dd>United Kingdom</dd></div>
+          <div><dt>Postcode</dt><dd>SW1A 2AA</dd></div>
+        </dl>
+      </section>
+
+      <section class="panel wallet-panel">
+        <h3>Wallet Snapshot</h3>
+        <div class="wallet-row">
+          <div><span>Deposit Balance</span><strong>£428.50</strong></div>
+          <div class="bar"><i class="bar-blue" style="width:48%"></i></div>
+        </div>
+        <div class="wallet-row">
+          <div><span>Winnings Balance</span><strong>£312.00</strong></div>
+          <div class="bar"><i class="bar-green" style="width:35%"></i></div>
+        </div>
+        <div class="wallet-row">
+          <div><span>Bonus Balance</span><strong>£40.00</strong></div>
+          <div class="bar"><i class="bar-violet" style="width:5%"></i></div>
+        </div>
+        <div class="wallet-row">
+          <div><span>Locked Balance</span><strong>£106.00</strong></div>
+          <div class="bar"><i class="bar-amber" style="width:12%"></i></div>
+        </div>
+        <div class="withdrawable"><span>Withdrawable</span><strong>£740.00</strong></div>
+      </section>
+
+      <section class="panel devices-panel">
+        <h3>Devices &amp; Login</h3>
+        <div class="device-row">
+          <span class="device-icon">▣</span><div><strong>Chrome / macOS</strong><small>London, UK · 88.156.x</small></div><i class="online"></i>
+        </div>
+        <div class="device-row">
+          <span class="device-icon">▣</span><div><strong>iOS · iPhone 14</strong><small>London, UK · 88.156.x</small></div>
+        </div>
+        <div class="device-row">
+          <span class="device-icon">▣</span><div><strong>Android · Pixel 7</strong><small>Manchester · 81.130.x</small></div>
+        </div>
+      </section>
+    </div>
+
+    <div class="middle-column">
+      <section class="quick-metrics" aria-label="Account totals">
+        <article class="panel mini-metric"><span>Total Deposits</span><strong>£3,240</strong></article>
+        <article class="panel mini-metric"><span>Total Winnings</span><strong>£2,612</strong></article>
+        <article class="panel mini-metric"><span>Net P/L</span><strong class="negative">−£628</strong></article>
+        <article class="panel mini-metric"><span>Contests</span><strong>184</strong></article>
+      </section>
+      <section class="panel timeline-panel">
+        <header class="panel-heading">
+          <div><h3>User Timeline</h3><p>All material actions · last 7 days</p></div>
+          <select class="timeline-filter" aria-label="Filter timeline" [value]="timelineFilter" (change)="setTimelineFilter($event)">
+            <option value="all">All activity</option>
+            <option value="wallet">Wallet</option>
+            <option value="contest">Contests</option>
+            <option value="compliance">Compliance</option>
+            <option value="consent">Consent</option>
+          </select>
+          <button type="button" class="button button-quiet" (click)="showAction('Timeline export')">Export</button>
+        </header>
+        <div class="timeline-list">
+          <article class="timeline-item" *ngFor="let event of filteredTimeline; let last = last" [class.last-event]="last">
+            <time>{{ event.time }}</time>
+            <span class="timeline-mark" [ngClass]="'mark-' + event.kind"></span>
+            <div class="event-copy">
+              <div><strong>{{ event.title }}</strong>
+                <span class="pill amber" *ngIf="event.flag === 'pending'">pending</span>
+                <span class="pill green" *ngIf="event.flag === 'verified'">verified</span>
+              </div>
+              <p>{{ event.description }}</p>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+
+    <div class="right-column">
+      <section class="panel responsible-panel">
+        <header class="section-title"><h3>Responsible Gaming</h3><span class="pill green">Healthy</span></header>
+        <div class="limit-heading"><span>Monthly Deposit Limit</span><strong>£820 / £1,500</strong></div>
+        <div class="limit-bar"><i></i></div>
+        <p class="limit-note">54.6% used · resets in 12 days</p>
+        <div class="rg-grid">
+          <article><span>Loss Months</span><strong>0</strong><small>of 12</small></article>
+          <article><span>Limit Reduces</span><strong>0</strong><small>1 allowed</small></article>
+          <article><span>Self-Exclude</span><strong>—</strong><small>never</small></article>
+          <article><span>RG Warnings</span><strong>0</strong></article>
+        </div>
+      </section>
+
+      <section class="panel consent-panel">
+        <h3>Consent Log</h3>
+        <div class="consent-row"><i class="checked">✓</i><span>Terms &amp; Conditions</span><small>v2.1</small><time>May 9</time></div>
+        <div class="consent-row"><i class="checked">✓</i><span>Privacy Policy</span><small>v2.0</small><time>May 9</time></div>
+        <div class="consent-row"><i class="checked">✓</i><span>Responsible Gaming</span><small>v1.4</small><time>May 9</time></div>
+        <div class="consent-row"><i></i><span>Marketing</span><small>v1.0</small><time>May 9</time></div>
+        <div class="consent-row"><i class="checked">✓</i><span>AML Consent</span><small>v1.2</small><time>May 9</time></div>
+      </section>
+
+      <section class="panel support-panel">
+        <header class="section-title"><h3>Support History</h3><span>4 tickets</span></header>
+        <div class="support-row"><code>TKT-2118</code><span>Withdrawal</span><b class="pill amber">open</b><small>2h</small></div>
+        <div class="support-row"><code>TKT-2092</code><span>KYC</span><b class="pill green">resolved</b><small>6d</small></div>
+        <div class="support-row"><code>TKT-1980</code><span>Contest</span><b class="pill green">resolved</b><small>14d</small></div>
+        <button type="button" class="note-button" (click)="showAction('Admin note')">+ Add admin note</button>
+      </section>
+    </div>
+  </div>
+</div>

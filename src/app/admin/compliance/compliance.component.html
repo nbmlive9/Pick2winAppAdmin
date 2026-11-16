@@ -1,0 +1,111 @@
+<div class="compliance-page">
+  <section class="metric-grid" [class.metric-grid-five]="pageKey === 'cases'" aria-label="Compliance overview">
+    <article class="metric-card" *ngFor="let metric of page.metrics">
+      <span class="metric-label">{{ metric.label }}</span>
+      <span class="metric-change" *ngIf="metric.change">↑ {{ metric.change }}</span>
+      <strong class="metric-value">{{ metric.value }}</strong>
+      <span class="metric-detail">{{ metric.detail }}</span>
+      <svg *ngIf="metric.points" class="metric-sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
+        <polygon [attr.points]="metric.points + ' 100,32 0,32'" [attr.fill]="metric.color" fill-opacity=".12"></polygon>
+        <polyline [attr.points]="metric.points" [attr.stroke]="metric.color"></polyline>
+      </svg>
+    </article>
+  </section>
+
+  <section class="panel table-panel">
+    <header class="panel-heading">
+      <div class="table-heading-copy">
+        <h2>{{ page.tableTitle }}</h2>
+        <p>{{ page.tableDescription }}</p>
+      </div>
+      <div class="filter-list" role="group" [attr.aria-label]="page.tableTitle + ' filters'">
+        <button *ngFor="let filter of page.filters" type="button" class="filter-chip"
+          [class.filter-active]="activeFilter === filter.key" [attr.aria-pressed]="activeFilter === filter.key"
+          (click)="setFilter(filter.key)">{{ filter.label }}</button>
+      </div>
+    </header>
+    <p *ngIf="notice" class="notice" role="status">{{ notice }}</p>
+
+    <div class="cases-layout" *ngIf="pageKey === 'cases'; else fullTable">
+      <div class="table-scroll">
+        <table class="records-table cases-table">
+          <thead><tr><th *ngFor="let column of page.columns">{{ column }}</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let row of filteredRows">
+              <td *ngFor="let cell of row.cells; let cellIndex = index" [class]="cell.tone ? 'tone-' + cell.tone : ''">
+                <ng-container [ngTemplateOutlet]="cellTemplate" [ngTemplateOutletContext]="{ cell: cell, row: row, cellIndex: cellIndex }"></ng-container>
+              </td>
+            </tr>
+            <tr *ngIf="filteredRows.length === 0"><td class="empty-state" [attr.colspan]="page.columns.length">No matching compliance cases.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <aside class="case-detail">
+        <p class="case-reference">CMP-9178 · selected</p>
+        <h3>Multiple Accounts · Aaron Khouri</h3>
+        <span class="detail-risk">● Risk 92</span>
+        <div class="detail-grid">
+          <div><small>User ID</small><strong>UK-48820</strong></div>
+          <div><small>Triggered</small><strong>6h ago</strong></div>
+          <div><small>KYC1</small><strong class="tone-green">Approved</strong></div>
+          <div><small>AML</small><strong class="tone-red">High</strong></div>
+          <div><small>Linked Accts</small><strong>4</strong></div>
+          <div><small>Shared Device</small><strong>iPhone 14 · IMEI…</strong></div>
+        </div>
+        <h4>Evidence</h4>
+        <ul class="evidence-list">
+          <li class="evidence-high">4 distinct UK-IDs verified on shared iOS device (DEV-AX14)</li>
+          <li class="evidence-high">Same Stripe card •••8821 used across 3 accounts</li>
+          <li>Login IPs cluster (88.156.42.x · 88.156.43.x)</li>
+          <li>Referral chain — 2 of 4 accounts referred each other</li>
+        </ul>
+        <h4>Linked Accounts</h4>
+        <ul class="linked-list">
+          <li><span class="linked-avatar">AK</span><span>Aaron Khouri<small>UK-48820</small></span><b>primary</b></li>
+          <li><span class="linked-avatar">AK</span><span>A. Khouri<small>UK-48833</small></span><b>suspected</b></li>
+          <li><span class="linked-avatar">AK</span><span>Adnan K.<small>UK-48841</small></span><b>suspected</b></li>
+          <li><span class="linked-avatar">AK</span><span>A.J. Khouri<small>UK-48902</small></span><b>suspected</b></li>
+        </ul>
+        <div class="detail-actions">
+          <button type="button" (click)="notice = 'Hold selected for CMP-9178.'">Hold</button>
+          <button type="button" (click)="notice = 'Request Docs selected for CMP-9178.'">Request Docs</button>
+          <button type="button" class="danger-action" (click)="notice = 'Suspend All selected for CMP-9178.'">Suspend All</button>
+        </div>
+      </aside>
+    </div>
+
+    <ng-template #fullTable>
+      <div class="table-scroll">
+        <table class="records-table">
+          <thead><tr><th *ngFor="let column of page.columns">{{ column }}</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let row of filteredRows" [class.row-highlight]="row.highlight">
+              <td *ngFor="let cell of row.cells; let cellIndex = index" [class]="cell.tone ? 'tone-' + cell.tone : ''">
+                <ng-container [ngTemplateOutlet]="cellTemplate" [ngTemplateOutletContext]="{ cell: cell, row: row, cellIndex: cellIndex }"></ng-container>
+              </td>
+            </tr>
+            <tr *ngIf="filteredRows.length === 0"><td class="empty-state" [attr.colspan]="page.columns.length">No matching records.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-template>
+  </section>
+</div>
+
+<ng-template #cellTemplate let-cell="cell" let-row="row" let-cellIndex="cellIndex">
+  <span *ngIf="cell.kind === 'person'" class="person-cell">
+    <span class="person-avatar" [class.avatar-restricted]="cell.restricted">{{ cell.initials }}</span>
+    <span class="person-copy"><strong>{{ cell.text }}</strong><small>{{ cell.id }}</small></span>
+  </span>
+  <span *ngIf="cell.kind === 'score'" class="score-cell">
+    <span class="score-track"><i [style.width.%]="cell.score" [style.background]="cell.color"></i></span>
+    <strong [style.color]="cell.color">{{ cell.score }}</strong>
+  </span>
+  <span *ngIf="cell.kind === 'badge'" class="status-badge" [ngClass]="'badge-' + (cell.tone || 'muted')">
+    <i *ngIf="cell.tone === 'green' || cell.tone === 'red'"></i>{{ cell.text }}
+  </span>
+  <span *ngIf="cell.kind === 'mono'" class="mono-cell">{{ cell.text }}</span>
+  <button *ngIf="cell.kind === 'action' && cell.text" type="button" class="row-action"
+    [class.row-action-primary]="cell.tone === 'red'" (click)="handleRowAction(cell.text, row)">{{ cell.text }}</button>
+  <span *ngIf="!cell.kind">{{ cell.text }}</span>
+</ng-template>

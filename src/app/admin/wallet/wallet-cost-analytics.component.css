@@ -1,0 +1,104 @@
+:host {
+  grid-area: cost;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .035);
+}
+
+h2 {
+  margin: 0;
+  color: #f1f4fb;
+  font: 600 13px "Space Grotesk", Manrope, sans-serif;
+}
+
+.provider-card {
+  padding: 9px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .06);
+}
+
+.provider-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.provider-mark {
+  display: grid;
+  width: 21px;
+  height: 21px;
+  flex: 0 0 21px;
+  place-items: center;
+  border-radius: 6px;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.provider-name {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  color: #f1f4fb;
+  font-size: 10px;
+}
+
+.provider-name small,
+.provider-details small {
+  color: #7a839e;
+  font-size: 8px;
+}
+
+.provider-total {
+  color: #ff7b88;
+  font: 600 14px "Space Grotesk", Manrope, sans-serif;
+}
+
+.provider-chart {
+  display: block;
+  width: 100%;
+  height: 25px;
+  margin-top: 5px;
+}
+
+.provider-chart polyline {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.3;
+  vector-effect: non-scaling-stroke;
+}
+
+.provider-details {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.provider-details > div {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.provider-details strong {
+  color: #f1f4fb;
+  font: 600 8px "JetBrains Mono", monospace;
+}
+
+@media (max-width: 760px) {
+  :host {
+    min-height: 230px;
+  }
+}

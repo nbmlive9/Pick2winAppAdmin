@@ -1,0 +1,36 @@
+<section class="bonuses-page">
+  <div class="metric-grid">
+    <app-ops-metric-card *ngFor="let metric of metrics" [metric]="metric"></app-ops-metric-card>
+  </div>
+
+  <div class="content-grid">
+    <section class="panel program-panel">
+      <header class="panel-heading">
+        <div><h2>Bonus Programs</h2><p>6 active · spend £42K MTD</p></div>
+        <button class="quiet-button" type="button">Filter⌄</button>
+      </header>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Campaign</th><th>Type</th><th>Recipients</th><th>Distributed</th><th>Used</th><th>Conversion</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let program of programs">
+              <td><div class="campaign"><span class="campaign-icon" [style.background]="'linear-gradient(135deg, ' + program.color + ', ' + program.color + '99)'">{{ program.name.charAt(0) }}</span><span><strong>{{ program.name }}</strong><small>active · auto-trigger</small></span></div></td>
+              <td><span class="type-chip" [style.color]="program.color" [style.border-color]="program.color + '55'">{{ program.type }}</span></td>
+              <td class="mono">{{ program.recipients }}</td>
+              <td class="mono strong">{{ program.distributed }}</td>
+              <td class="mono positive">{{ program.used }}</td>
+              <td><div class="conversion"><span><i [style.width.%]="program.conversion" [style.background]="program.color"></i></span><b>{{ program.conversion }}%</b></div></td>
+              <td><span class="status-chip live"><i></i>Live</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel abuse-panel">
+      <h2>Abuse Detection</h2>
+      <p>9 flags this week</p>
+      <div *ngFor="let flag of abuseFlags" class="abuse-flag" [ngClass]="'severity-' + flag.severity">{{ flag.text }}</div>
+    </section>
+  </div>
+</section>

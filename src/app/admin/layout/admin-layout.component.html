@@ -1,20 +1,267 @@
 <div class="admin-shell">
-    <aside class="sidebar">
-        <a class="brand" routerLink="/admin/dashboard">PICK<span>2</span>WIN</a>
-        <p class="eyebrow">WORKSPACE</p>
-        <nav aria-label="Admin navigation">
-            <a routerLink="/admin/dashboard" routerLinkActive="active">Dashboard</a>
-            <a routerLink="/admin/profile" routerLinkActive="active">My profile</a>
-        </nav>
-        <small>Administration portal</small>
-    </aside>
-        <div class="workspace">
-            <header *ngIf="auth.user$ | async as user">
-                <span>Admin workspace</span>
-                <a routerLink="/admin/profile">{{ user.name }} <span class="badge">{{ user.role === 'super_admin' ? 'Super admin' : 'Admin' }}</span></a>
-            </header>
-            <main class="page-content">
-                <router-outlet></router-outlet>
-            </main>
+  <aside class="sidebar">
+    <a class="brand" routerLink="/admin/dashboard" aria-label="Pick2Win operations dashboard">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 2.5 20 6v5.5c0 5-3.5 8.6-8 10-4.5-1.4-8-5-8-10V6l8-3.5Z" />
+          <path d="m8.5 12 2.2 2.2 4.8-5" />
+        </svg>
+      </span>
+      <span class="brand-copy">
+        <strong>PICK<span>2</span>WIN</strong>
+        <small>OPS CONSOLE</small>
+      </span>
+    </a>
+
+    <nav class="sidebar-nav" aria-label="Admin navigation">
+      <p class="nav-heading">OPERATIONS</p>
+      <a class="nav-item" routerLink="/admin/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+        <span class="nav-icon" aria-hidden="true">▦</span><span>Dashboard</span>
+      </a>
+      <div class="rg-nav-row user-nav-row">
+        <a class="nav-item" routerLink="/admin/users/all" routerLinkActive="active">
+          <span class="nav-icon" aria-hidden="true">♙</span><span>Users</span>
+        </a>
+        <button class="nav-expand" type="button" [attr.aria-expanded]="usersExpanded"
+          aria-controls="users-subnav" aria-label="Toggle Users menu" (click)="usersExpanded = !usersExpanded">
+          {{ usersExpanded ? '−' : '+' }}
+        </button>
+      </div>
+      <nav class="user-subnav" id="users-subnav" *ngIf="usersExpanded" aria-label="User management">
+        <a routerLink="/admin/users/all" routerLinkActive="selected" [routerLinkActiveOptions]="{ exact: true }">
+          <span>All Users</span><small>48.2K</small>
+        </a>
+        <a routerLink="/admin/users/profile" routerLinkActive="selected" [routerLinkActiveOptions]="{ exact: true }">
+          <span>User 360° Profile</span>
+        </a>
+        <a routerLink="/admin/users/students" routerLinkActive="selected" [routerLinkActiveOptions]="{ exact: true }">
+          <span>Student Users</span><small>12.4K</small>
+        </a>
+        <a routerLink="/admin/users/subscriptions" routerLinkActive="selected" [routerLinkActiveOptions]="{ exact: true }">
+          <span>Subscription Users</span><small>8.6K</small>
+        </a>
+        <a routerLink="/admin/users/consents" routerLinkActive="selected" [routerLinkActiveOptions]="{ exact: true }">
+          <span>Consent Logs</span>
+        </a>
+        <a routerLink="/admin/users/deleted" routerLinkActive="selected" [routerLinkActiveOptions]="{ exact: true }">
+          <span>Deleted Accounts</span><small>342</small>
+        </a>
+      </nav>
+      <div class="rg-nav-group" [class.rg-active-group]="isRgRoute">
+        <div class="rg-nav-row">
+          <a class="nav-item" routerLink="/admin/responsible-gaming" routerLinkActive="active">
+            <span class="nav-icon" aria-hidden="true">◉</span><span>Responsible Gaming</span><b>27</b>
+          </a>
+          <button class="nav-expand" type="button" [attr.aria-expanded]="rgExpanded"
+            aria-label="Toggle Responsible Gaming menu" (click)="rgExpanded = !rgExpanded">
+            {{ rgExpanded ? '−' : '+' }}
+          </button>
         </div>
-    </div>
+        <nav class="user-subnav rg-subnav" *ngIf="rgExpanded" aria-label="Responsible gaming screens">
+          <a routerLink="/admin/responsible-gaming/deposit-limits" routerLinkActive="selected">
+            <span>Deposit Limits</span>
+          </a>
+          <a routerLink="/admin/responsible-gaming/limit-reductions" routerLinkActive="selected">
+            <span>Limit Reduction Monitoring</span>
+          </a>
+          <a routerLink="/admin/responsible-gaming/monthly-loss" routerLinkActive="selected">
+            <span>Monthly Loss Users</span><small>184</small>
+          </a>
+          <a routerLink="/admin/responsible-gaming/high-risk" routerLinkActive="selected">
+            <span>High-Risk Users</span><small>27</small>
+          </a>
+          <a routerLink="/admin/responsible-gaming/self-exclusion" routerLinkActive="selected">
+            <span>Self Exclusion Users</span>
+          </a>
+          <a routerLink="/admin/responsible-gaming/alerts" routerLinkActive="selected">
+            <span>RG Alerts</span>
+          </a>
+        </nav>
+      </div>
+      <div class="compliance-nav-group" [class.compliance-active-group]="isComplianceRoute">
+        <div class="rg-nav-row">
+          <a class="nav-item" routerLink="/admin/compliance" routerLinkActive="active">
+            <span class="nav-icon" aria-hidden="true">✓</span><span>Compliance</span><b>14</b>
+          </a>
+          <button class="nav-expand" type="button" [attr.aria-expanded]="complianceExpanded"
+            aria-controls="compliance-subnav" aria-label="Toggle Compliance menu"
+            (click)="complianceExpanded = !complianceExpanded">
+            {{ complianceExpanded ? '−' : '+' }}
+          </button>
+        </div>
+        <nav class="user-subnav compliance-subnav" id="compliance-subnav" *ngIf="complianceExpanded"
+          aria-label="Compliance screens">
+          <a routerLink="/admin/compliance/kyc0" routerLinkActive="selected"><span>KYC0 Verification</span><small>62</small></a>
+          <a routerLink="/admin/compliance/kyc1" routerLinkActive="selected"><span>KYC1 Verification</span><small>138</small></a>
+          <a routerLink="/admin/compliance/aml" routerLinkActive="selected"><span>AML Monitoring</span></a>
+          <a routerLink="/admin/compliance/sof" routerLinkActive="selected"><span>Source of Funds (SoF)</span></a>
+          <a routerLink="/admin/compliance/pep" routerLinkActive="selected"><span>PEP &amp; Sanctions</span></a>
+          <a routerLink="/admin/compliance/suspicious" routerLinkActive="selected"><span>Suspicious Activities</span><small>14</small></a>
+          <a routerLink="/admin/compliance/cases" routerLinkActive="selected"><span>Compliance Cases</span></a>
+        </nav>
+      </div>
+      <div class="wallet-nav-group" [class.wallet-active-group]="isWalletRoute">
+        <div class="rg-nav-row">
+          <a class="nav-item" routerLink="/admin/wallet/operator" routerLinkActive="active">
+            <span class="nav-icon" aria-hidden="true">▣</span><span>Finance &amp; Wallet</span>
+          </a>
+          <button class="nav-expand" type="button" [attr.aria-expanded]="walletExpanded"
+            aria-controls="wallet-subnav" aria-label="Toggle Finance and Wallet menu"
+            (click)="walletExpanded = !walletExpanded">
+            {{ walletExpanded ? '−' : '+' }}
+          </button>
+        </div>
+        <nav class="user-subnav wallet-subnav" id="wallet-subnav" *ngIf="walletExpanded" aria-label="Finance and wallet screens">
+          <a routerLink="/admin/wallet/operator" routerLinkActive="selected"><span>Operator Wallet</span></a>
+          <a routerLink="/admin/wallet/withdrawal-review" routerLinkActive="selected"><span>Withdrawal Review</span><small>24</small></a>
+          <a routerLink="/admin/wallet/deposits" routerLinkActive="selected"><span>Deposits</span></a>
+          <a routerLink="/admin/wallet/transactions" routerLinkActive="selected"><span>Transactions</span></a>
+          <a routerLink="/admin/wallet/user-funds" routerLinkActive="selected"><span>User Funds</span></a>
+          <a routerLink="/admin/wallet/inactive-funds" routerLinkActive="selected"><span>Inactive Funds</span></a>
+        </nav>
+      </div>
+
+      <p class="nav-heading">BUSINESS</p>
+      <a class="nav-item" routerLink="/admin/bonuses/overview" routerLinkActive="active">
+        <span class="nav-icon" aria-hidden="true">◇</span><span>Bonuses &amp; Rewards</span>
+      </a>
+      <a class="nav-item" routerLink="/admin/subscriptions/analytics" routerLinkActive="active">
+        <span class="nav-icon" aria-hidden="true">◷</span><span>Subscriptions</span>
+      </a>
+      <div class="football-nav-group" [class.football-active-group]="isFootballRoute">
+        <div class="rg-nav-row">
+          <a class="nav-item" routerLink="/admin/football/series" routerLinkActive="active">
+            <span class="nav-icon" aria-hidden="true">⚽</span><span>Football Operations</span>
+          </a>
+          <button class="nav-expand" type="button" [attr.aria-expanded]="footballExpanded"
+            aria-controls="football-subnav" aria-label="Toggle Football Operations menu"
+            (click)="footballExpanded = !footballExpanded">
+            {{ footballExpanded ? '−' : '+' }}
+          </button>
+        </div>
+        <nav class="user-subnav football-subnav" id="football-subnav" *ngIf="footballExpanded"
+          aria-label="Football operations screens">
+          <a routerLink="/admin/football/series" routerLinkActive="selected" [routerLinkActiveOptions]="{ exact: true }"><span>Series — View All</span></a>
+          <a routerLink="/admin/football/series/add" routerLinkActive="selected"><span>Series — Add New</span></a>
+          <a routerLink="/admin/football/matches" routerLinkActive="selected" [routerLinkActiveOptions]="{ exact: true }"><span>Matches — View All</span></a>
+          <a routerLink="/admin/football/matches/add" routerLinkActive="selected"><span>Matches — Add New</span></a>
+          <a routerLink="/admin/football/contests" routerLinkActive="selected" [routerLinkActiveOptions]="{ exact: true }"><span>Contests — View All</span></a>
+          <a routerLink="/admin/football/contests/add" routerLinkActive="selected"><span>Contests — Add New</span></a>
+        </nav>
+      </div>
+      <a class="nav-item" routerLink="/admin/reports/library" routerLinkActive="active">
+        <span class="nav-icon" aria-hidden="true">▤</span><span>Reports &amp; Analytics</span>
+      </a>
+
+      <p class="nav-heading">WORKSPACE</p>
+      <div class="nav-item"><span class="nav-icon" aria-hidden="true">⚑</span><span>Marketing</span></div>
+      <a class="nav-item" routerLink="/admin/support/tickets" routerLinkActive="active">
+        <span class="nav-icon" aria-hidden="true">◌</span><span>Support</span><b>9</b>
+      </a>
+      <div class="nav-item"><span class="nav-icon" aria-hidden="true">☷</span><span>Review &amp; Approval</span><b>41</b></div>
+      <a class="nav-item" routerLink="/admin/audit/logs" routerLinkActive="active">
+        <span class="nav-icon" aria-hidden="true">▧</span><span>Audit &amp; Security</span>
+      </a>
+
+      <a class="profile-link" routerLink="/admin/profile" routerLinkActive="selected">
+        <span class="user-avatar" *ngIf="auth.user$ | async as user">{{ user.name.charAt(0) }}</span>
+        <span class="profile-copy" *ngIf="auth.user$ | async as user">
+          <strong>{{ user.name }}</strong>
+          <small>{{ user.role === 'super_admin' ? 'Super Admin' : 'Admin' }} · UK</small>
+        </span>
+        <i class="online-dot" aria-label="Online"></i>
+      </a>
+    </nav>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar" *ngIf="auth.user$ | async">
+      <div class="topbar-context">
+        <div class="breadcrumbs">
+          <ng-container *ngFor="let crumb of breadcrumbs; let last = last">
+            <span [class.current-crumb]="last">{{ crumb }}</span>
+            <span *ngIf="!last" aria-hidden="true">›</span>
+          </ng-container>
+        </div>
+        <strong>{{ pageTitle }}</strong>
+      </div>
+      <label class="search-box">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5"></circle><path d="m11 11 3.5 3.5"></path></svg>
+        <input type="search" [value]="globalSearch" (input)="updateGlobalSearch($event)"
+          placeholder="Search users, transactions, contests, KYC cases…" aria-label="Search admin records" />
+        <kbd>⌘K</kbd>
+      </label>
+      <button class="topbar-button new-button" type="button"><span aria-hidden="true">＋</span> New</button>
+      <button class="notification-button" type="button" aria-label="Notifications">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 8a6 6 0 0 1 12 0c0 5 2 6 2 6H2s2-1 2-6ZM8 17a2 2 0 0 0 4 0"></path></svg>
+        <i></i>
+      </button>
+      <div class="topbar-actions" *ngIf="routeActions.length">
+        <ng-container *ngFor="let action of routeActions">
+          <a *ngIf="action.route" class="topbar-button" [class.topbar-primary]="action.primary"
+            [routerLink]="action.route">{{ action.label }}</a>
+          <button *ngIf="!action.route" class="topbar-button" [class.topbar-primary]="action.primary"
+            type="button">{{ action.label }}</button>
+        </ng-container>
+      </div>
+      <div class="topbar-actions" *ngIf="activeRecordsPage as recordsPage">
+        <button class="topbar-button" type="button" (click)="recordsPage.exportCsv()">
+          {{ recordsPage.page.primaryAction }}
+        </button>
+        <button class="topbar-button" type="button" [class.topbar-primary]="recordsPage.page.secondaryActionPrimary !== false"
+          (click)="recordsPage.handleSecondaryAction()">
+          {{ recordsPage.page.secondaryAction }}
+        </button>
+      </div>
+      <div class="topbar-actions" *ngIf="activeCompliancePage as compliancePage">
+        <button class="topbar-button" type="button" (click)="compliancePage.handleTopbarAction('primary')">
+          {{ compliancePage.page.primaryAction }}
+        </button>
+        <button class="topbar-button topbar-primary" type="button"
+          (click)="compliancePage.handleTopbarAction('secondary')">
+          {{ compliancePage.page.secondaryAction }}
+        </button>
+      </div>
+      <div class="topbar-actions" *ngIf="activeRgRecordsPage as rgPage">
+        <button class="topbar-button" type="button" (click)="rgPage.handleTopbarAction('primary')">
+          {{ rgPage.page.primaryAction }}
+        </button>
+        <button class="topbar-button" type="button" [class.topbar-primary]="true"
+          (click)="rgPage.handleTopbarAction('secondary')">
+          {{ rgPage.page.secondaryAction }}
+        </button>
+      </div>
+      <div class="topbar-actions" *ngIf="activeRgMonitorPage as rgMonitor">
+        <button class="topbar-button" type="button" (click)="rgMonitor.handleTopbarAction('primary')">
+          {{ rgMonitor.primaryAction }}
+        </button>
+        <button class="topbar-button topbar-primary" type="button"
+          (click)="rgMonitor.handleTopbarAction('secondary')">
+          {{ rgMonitor.secondaryAction }}
+        </button>
+      </div>
+      <div class="topbar-actions" *ngIf="activeUserProfile as userProfile">
+        <button class="topbar-button" type="button" (click)="userProfile.showAction('Impersonation')">Impersonate</button>
+        <button class="topbar-button" type="button" (click)="userProfile.showAction('Re-consent')">Force Re-consent</button>
+        <button class="topbar-button topbar-primary" type="button" (click)="userProfile.showAction('Account suspension')">
+          Suspend Account
+        </button>
+      </div>
+      <div class="topbar-actions" *ngIf="activeWalletPage as walletPage">
+        <button class="topbar-button" *ngFor="let action of walletPage.page.actions; let i = index"
+          type="button" [class.topbar-primary]="action.primary" (click)="walletPage.handleTopbarAction(i)">
+          {{ action.label }}
+        </button>
+      </div>
+      <div class="topbar-actions" *ngIf="activeWithdrawalPage as withdrawalPage">
+        <button class="topbar-button" *ngFor="let action of withdrawalPage.actions; let i = index"
+          type="button" [class.topbar-primary]="action.primary" (click)="withdrawalPage.handleTopbarAction(i)">
+          {{ action.label }}
+        </button>
+      </div>
+    </header>
+    <main class="page-content">
+      <router-outlet (activate)="onChildActivate($event)"></router-outlet>
+    </main>
+  </div>
+</div>

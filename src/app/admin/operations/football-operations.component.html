@@ -1,0 +1,144 @@
+<section class="football-page" [ngSwitch]="view">
+  <ng-container *ngSwitchCase="'series'">
+    <div class="metric-grid"><app-ops-metric-card *ngFor="let metric of seriesMetrics" [metric]="metric"></app-ops-metric-card></div>
+    <section class="panel list-panel">
+      <header class="list-tools">
+        <button class="filter-chip active" type="button">All (14)</button><button class="filter-chip" type="button">Live (6)</button>
+        <button class="filter-chip" type="button">Upcoming (6)</button><button class="filter-chip" type="button">Concluded (2)</button>
+        <span class="tool-spacer"></span><span class="sort-label">Sort: Start date ↓</span>
+      </header>
+      <div class="table-scroll">
+        <table class="operations-table series-table">
+          <thead><tr><th>Series</th><th>Type</th><th>Window</th><th>Matches</th><th>Contests</th><th>Prize Pool</th><th>Active Users</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngFor="let item of series">
+              <td><div class="series-name"><span class="series-icon" [style.background]="'linear-gradient(135deg, ' + item.color + ', ' + item.color + '88)'">{{ item.icon }}</span><span><strong>{{ item.name }}</strong><small>{{ item.id }}</small></span></div></td>
+              <td><span class="sport-chip" [style.color]="item.color" [style.border-color]="item.color + '55'">{{ item.type }}</span></td>
+              <td class="mono">{{ item.window }}</td><td class="mono">{{ item.matches }}</td><td class="mono">{{ item.contests }}</td>
+              <td class="mono bold">{{ item.prize }}</td><td class="mono">{{ item.users }}</td>
+              <td><span class="status-chip" [class.status-live]="item.status === 'Live'"><i></i>{{ item.status }}</span></td>
+              <td><a class="table-link" routerLink="/admin/football/matches">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+
+  <ng-container *ngSwitchCase="'series-add'">
+    <div class="form-layout">
+      <div class="form-stack">
+        <section class="panel form-panel">
+          <header><h2>Series Identity</h2><p>Basic info shown to users</p></header>
+          <div class="form-row"><label class="field"><span>Series Name *</span><input value="Premier League 25/26"></label><label class="field"><span>Series Code</span><input value="PL2526"></label></div>
+          <div class="form-row"><label class="field"><span>Series Type *</span><select><option>League</option><option>Cup</option><option>Tournament</option></select></label><label class="field"><span>Region</span><select><option>England</option><option>Europe</option><option>International</option></select></label><label class="field"><span>Federation</span><select><option>Premier League</option><option>UEFA</option><option>FIFA</option></select></label></div>
+          <label class="field"><span>Description</span><textarea rows="2">Top-flight English football. 20 teams, 380 matches, runs Aug → May.</textarea></label>
+        </section>
+        <section class="panel form-panel">
+          <header><h2>Schedule &amp; Format</h2><p>Window and matchday structure</p></header>
+          <div class="form-row"><label class="field"><span>Start Date *</span><input type="date" value="2025-08-15"></label><label class="field"><span>End Date *</span><input type="date" value="2026-05-24"></label><label class="field"><span>Total Match Days</span><input value="38"></label></div>
+          <div class="form-row"><label class="field"><span>Total Teams</span><input value="20"></label><label class="field"><span>Total Matches</span><input value="380"></label><label class="field"><span>Match Format</span><select><option>2x45min</option><option>2x45+ET</option><option>Single Match</option></select></label></div>
+        </section>
+        <section class="panel form-panel">
+          <header><h2>Contest Defaults</h2><p>Default values pre-filled for contests in this series</p></header>
+          <div class="form-row"><label class="field"><span>Default Entry Fee (£)</span><input value="5.00"></label><label class="field"><span>Min Entry Fee (£)</span><input value="1.00"></label><label class="field"><span>Max Entry Fee (£)</span><input value="100.00"></label></div>
+          <div class="form-row"><label class="field"><span>Default Tier</span><select><option>Mid</option><option>Casual</option><option>Premium</option></select></label><label class="field"><span>Operator Fee %</span><input value="12"></label><label class="field"><span>Bonus Pool % of Pot</span><input value="3"></label></div>
+          <div class="form-row"><div class="toggle-card"><i class="toggle-on"></i><span><strong>Enable Smart Release Engine</strong><small>Use Active Users to throttle contest sizes</small></span></div><div class="toggle-card"><i class="toggle-on"></i><span><strong>Auto-create per matchday</strong><small>Auto-publish contests 48h before kickoff</small></span></div></div>
+        </section>
+        <section class="panel form-panel">
+          <header><h2>Compliance &amp; RG</h2><p>Restrictions inherited by all contests in series</p></header>
+          <div class="form-row"><div class="toggle-card"><i class="toggle-on"></i><span><strong>KYC1 Required</strong><small>Block entry if user has not completed KYC1</small></span></div><div class="toggle-card"><i class="toggle-on"></i><span><strong>Block Self-Excluded</strong></span></div><div class="toggle-card"><i class="toggle-on"></i><span><strong>Block Monthly-Loss flagged</strong></span></div></div>
+          <div class="form-row"><label class="field"><span>Min Age</span><input value="18"></label><label class="field"><span>Allowed Regions</span><input value="UK only"></label></div>
+        </section>
+      </div>
+      <aside class="right-stack">
+        <section class="panel side-panel"><h3 class="eyebrow">Live Preview</h3><div class="series-preview"><div class="preview-main"><span class="preview-football">⚽</span><span><strong>Premier League 25/26</strong><small>League · England · 380 matches</small></span></div><div class="preview-chips"><span>Aug 15 → May 24</span><span>38 MD</span><span class="green-text">KYC1 req</span><span>Mid tier</span></div></div></section>
+        <section class="panel side-panel"><h2>Publish Checklist</h2><div class="check-row" *ngFor="let item of seriesChecklist" [ngClass]="checklistTone(item)"><i>{{ item.done ? '✓' : '' }}</i>{{ item.label }}</div></section>
+        <section class="panel side-panel"><h2>Forecast (smart release)</h2><p>Based on 22.4K estimated AU per matchday</p><div class="stat-row"><span>Avg Contest Pot</span><strong>£42,800</strong></div><div class="stat-row"><span>Operator Take (12%)</span><strong class="green-text">£5,136</strong></div><div class="stat-row"><span>Bonus Pool (3%)</span><strong class="violet-text">£1,284</strong></div></section>
+      </aside>
+    </div>
+  </ng-container>
+
+  <ng-container *ngSwitchCase="'matches'">
+    <div class="metric-grid"><app-ops-metric-card *ngFor="let metric of matchMetrics" [metric]="metric"></app-ops-metric-card></div>
+    <section class="panel list-panel">
+      <header class="list-tools">
+        <button class="filter-chip active" type="button">All</button><button class="filter-chip" type="button">Live</button>
+        <button class="filter-chip" type="button">Upcoming</button><button class="filter-chip" type="button">Played</button><button class="filter-chip" type="button">Disputed</button>
+        <span class="tool-spacer"></span><span class="sort-label">Sort: Kickoff ↑</span>
+      </header>
+      <div class="table-scroll">
+        <table class="operations-table match-table">
+          <thead><tr><th>Match</th><th>Series</th><th>Kickoff</th><th>Score</th><th>Contests</th><th>Pot</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngFor="let match of matches">
+              <td><div class="fixture"><span class="team"><i [style.background]="teamTone(match.home)">{{ match.home.slice(0, 2) }}</i><b>{{ match.home }}</b></span><strong class="score" [class.live-score]="match.status.startsWith('Live')">{{ match.score }}</strong><span class="team"><i [style.background]="teamTone(match.away)">{{ match.away.slice(0, 2) }}</i><b>{{ match.away }}</b></span></div></td>
+              <td><span class="sport-chip" [ngClass]="'sport-' + match.seriesTone">{{ match.series }}</span></td>
+              <td class="mono">{{ match.kickoff }}</td><td class="mono bold">{{ match.score }}</td><td class="mono">{{ match.contests }}</td><td class="mono bold">{{ match.pot }}</td>
+              <td><span class="status-chip" [ngClass]="match.status.startsWith('Live') ? 'status-match-live' : match.status === 'Played' ? 'status-played' : match.status === 'VAR Review' ? 'status-review' : ''"><i></i>{{ match.status }}</span></td>
+              <td><a class="table-link" routerLink="/admin/football/contests">View</a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+
+  <ng-container *ngSwitchCase="'match-add'">
+    <div class="form-layout">
+      <div class="form-stack">
+        <section class="panel form-panel">
+          <header><h2>Fixture</h2><p>Pick the two teams and assign to a series</p></header>
+          <div class="form-row"><label class="field"><span>Series *</span><select><option>Premier League 25/26</option><option>UEFA Champions League</option><option>FA Cup 25/26</option></select></label><label class="field"><span>Match Day</span><input value="MD12"></label><label class="field"><span>Match Code</span><input value="PL2526-MD12-ARSTOT"></label></div>
+          <div class="team-form-row">
+            <div class="team-form"><h3>Home Team</h3><label class="field"><span>Team *</span><select><option>Arsenal</option><option>Liverpool</option><option>Chelsea</option></select></label><div class="form-row"><label class="field"><span>Manager</span><input value="Mikel Arteta"></label><label class="field"><span>Squad ID</span><input value="ARS-25-A"></label></div></div>
+            <span class="versus">VS</span>
+            <div class="team-form"><h3>Away Team</h3><label class="field"><span>Team *</span><select><option>Tottenham</option><option>Arsenal</option><option>Brighton</option></select></label><div class="form-row"><label class="field"><span>Manager</span><input value="Ange Postecoglou"></label><label class="field"><span>Squad ID</span><input value="TOT-25-A"></label></div></div>
+          </div>
+        </section>
+        <section class="panel form-panel">
+          <header><h2>Schedule &amp; Venue</h2></header>
+          <div class="form-row"><label class="field"><span>Kickoff Date *</span><input type="date" value="2025-12-13"></label><label class="field"><span>Kickoff Time *</span><input type="time" value="16:30"></label><label class="field"><span>Timezone</span><select><option>Europe/London</option><option>UTC</option></select></label></div>
+          <div class="form-row"><label class="field"><span>Venue *</span><input value="Emirates Stadium"></label><label class="field"><span>City</span><input value="London"></label><label class="field"><span>Capacity</span><input value="60,704"></label></div>
+          <div class="form-row"><label class="field"><span>Match Format</span><select><option>2x45min + ET if drawn</option><option>2x45min</option></select></label><label class="field"><span>Referee</span><select><option>Michael Oliver</option><option>Anthony Taylor</option></select></label></div>
+        </section>
+        <section class="panel form-panel">
+          <header><h2>Contests for this Match</h2><p>Auto-generated from Smart Release Engine. Edit before publish.</p></header>
+          <div class="tier-preview-grid">
+            <article><span class="tier-dot blue-dot"></span><strong>Casual</strong><small>Entry <b>£1</b></small><small>Cap <b>2,400</b></small><small>Pot est. <b class="blue-text">£2,160</b></small></article>
+            <article class="recommended"><label>PICK</label><span class="tier-dot violet-dot"></span><strong>Mid</strong><small>Entry <b>£5</b></small><small>Cap <b>1,800</b></small><small>Pot est. <b class="violet-text">£8,100</b></small></article>
+            <article><span class="tier-dot red-dot"></span><strong>Premium</strong><small>Entry <b>£25</b></small><small>Cap <b>600</b></small><small>Pot est. <b class="red-text">£13,500</b></small></article>
+          </div>
+          <div class="info-note">Smart Release predicts <strong>22.4K Active Users</strong> on this matchday → recommends 3 contests with caps based on AU buckets. <a routerLink="/admin/football/contests/add">Customize →</a></div>
+        </section>
+        <section class="panel form-panel">
+          <header><h2>Scoring &amp; Settlement</h2><p>How predictions are scored when the match completes</p></header>
+          <div class="form-row"><label class="field"><span>Scoring Source *</span><select><option>Stats Perform (Opta)</option><option>SportRadar</option></select></label><label class="field"><span>Settlement Trigger</span><select><option>Final whistle + 5min buffer</option><option>Manual approval</option></select></label></div>
+          <div class="form-row"><div class="toggle-card"><i class="toggle-on"></i><span><strong>VAR review window (4 min)</strong><small>Hold settlement until VAR window closes</small></span></div><div class="toggle-card"><i class="toggle-on"></i><span><strong>Auto-payout on settlement</strong></span></div></div>
+        </section>
+      </div>
+      <aside class="right-stack">
+        <section class="panel side-panel"><h3 class="eyebrow">Fixture Preview</h3><div class="fixture-preview"><small>PREMIER LEAGUE · MD12</small><div class="fixture-preview-teams"><span><i [style.background]="teamTone('Arsenal')">A</i><b>Arsenal</b><em>Home</em></span><strong>VS</strong><span><i [style.background]="teamTone('Tottenham')">T</i><b>Tottenham</b><em>Away</em></span></div><p>Sat 13 Dec · 16:30 GMT · Emirates</p></div></section>
+        <section class="panel side-panel"><h2>Pre-publish Checks</h2><div class="check-row" *ngFor="let item of matchChecklist" [ngClass]="checklistTone(item)"><i>{{ item.done ? '✓' : '' }}</i>{{ item.label }}</div></section>
+      </aside>
+    </div>
+  </ng-container>
+
+  <app-football-contest-manager *ngSwitchCase="'contest'"></app-football-contest-manager>
+
+  <ng-container *ngSwitchCase="'contest-add'">
+    <div class="form-layout">
+      <div class="form-stack">
+        <section class="panel form-panel"><header><h2>Contest Identity</h2><p>Public-facing contest details</p></header><div class="form-row"><label class="field"><span>Contest Name *</span><input value="Mid Tier · Arsenal vs Tottenham"></label><label class="field"><span>Slug</span><input value="ars-tot-md12-mid"></label></div><div class="form-row"><label class="field"><span>Series *</span><select><option>Premier League 25/26</option></select></label><label class="field"><span>Match *</span><select><option>Arsenal vs Tottenham · MD12</option></select></label><label class="field"><span>Tier *</span><select><option>Mid</option><option>Casual</option><option>Premium</option></select></label></div></section>
+        <section class="panel form-panel"><header><h2>Smart Release Engine</h2><p>Cap and split based on Active Users (not Registered)</p></header><div class="release-note"><span>↟</span><p>Active Users (this matchday) <b>22,420</b> · MAU bucket <strong>Tier B (15K–30K)</strong> · recommends cap <b>1,800</b></p><div class="toggle-card"><i class="toggle-on"></i><strong>Apply formula</strong></div></div><div class="form-row"><label class="field"><span>Entry Cap *</span><input value="1800"></label><label class="field"><span>Min Entries</span><input value="60"></label><div class="toggle-card"><i class="toggle-on"></i><span><strong>Auto-cancel if min not met</strong><small>Refund all entrants 30min before kickoff</small></span></div></div></section>
+        <section class="panel form-panel"><header><h2>Pricing &amp; Pot</h2><p>Stripe fees and Sumsub costs deducted before split</p></header><div class="form-row"><label class="field"><span>Entry Fee (£) *</span><input value="5.00"></label><label class="field"><span>Operator Fee % *</span><input value="12"></label><label class="field"><span>Bonus Pool % *</span><input value="3"></label><label class="field"><span>Charity %</span><input value="0"></label></div><div class="form-row"><label class="field"><span>Payout Curve</span><select><option>Top 20% paid · weighted</option></select></label><label class="field"><span>Tie-break</span><select><option>Earlier entry wins</option></select></label></div></section>
+        <section class="panel form-panel"><header><h2>Eligibility &amp; Compliance</h2></header><div class="form-row"><div class="toggle-card"><i class="toggle-on"></i><strong>KYC1 required</strong></div><div class="toggle-card"><i class="toggle-on"></i><strong>Block self-excluded</strong></div><div class="toggle-card"><i class="toggle-on"></i><strong>Block monthly-loss flags</strong></div><div class="toggle-card"><i class="toggle-off"></i><span><strong>Subscriber-only</strong><small>Restrict to active 1mo/3mo subscribers</small></span></div></div><div class="form-row"><label class="field"><span>Min Age</span><input value="18"></label><label class="field"><span>Max entries / user</span><input value="3"></label><label class="field"><span>Allowed regions</span><select><option>UK only</option></select></label></div></section>
+        <section class="panel form-panel"><header><h2>Scoring Rules</h2><p>Points awarded for correct predictions</p></header><div class="points-grid"><label class="field"><span>Correct Score</span><input value="50"></label><label class="field"><span>Result Only</span><input value="20"></label><label class="field"><span>Goal Diff</span><input value="30"></label><label class="field"><span>Top Scorer</span><input value="25"></label><label class="field"><span>First Goal</span><input value="15"></label><label class="field"><span>HT/FT</span><input value="35"></label><label class="field"><span>BTTS</span><input value="10"></label><label class="field"><span>Clean Sheet</span><input value="15"></label></div></section>
+      </div>
+      <aside class="right-stack">
+        <section class="panel side-panel"><h3 class="eyebrow">PROFITABILITY FORECAST</h3><div class="stat-row"><span>Projected Entries</span><strong>1,620</strong></div><div class="stat-row"><span>Gross Pot</span><strong>£8,100</strong></div><div class="stat-row"><span>Stripe Fees (1.5% + 20p)</span><strong class="red-text">−£446</strong></div><div class="stat-row"><span>Sumsub Costs</span><strong class="red-text">−£162</strong></div><div class="stat-row"><span>Net Pot to Pay</span><strong class="green-text">£6,318</strong></div><hr><div class="stat-row"><span>Operator Take (12%)</span><strong class="green-text">£758</strong></div><div class="stat-row"><span>Bonus Pool (3%)</span><strong class="violet-text">£189</strong></div></section>
+        <section class="panel side-panel"><h2>Pre-publish Checks</h2><div class="check-row complete"><i>✓</i>Identity &amp; series</div><div class="check-row complete"><i>✓</i>Pricing valid</div><div class="check-row complete"><i>✓</i>Smart Release approved</div><div class="check-row complete"><i>✓</i>KYC1 lock active</div><div class="check-row complete"><i>✓</i>RG flags wired</div><div class="check-row incomplete"><i></i>Marketing banner</div></section>
+      </aside>
+    </div>
+  </ng-container>
+</section>

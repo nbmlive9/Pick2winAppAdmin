@@ -1,23 +1,152 @@
-<ng-container *ngIf="profile$ | async as user">
-  <p class="eyebrow">OVERVIEW</p>
-  <h1>Welcome back, {{ user.name }}</h1>
-  <p class="muted">Your Pick2Win administration workspace.</p>
-  <div class="card-grid">
-    <section class="card">
-      <p class="eyebrow">ACCOUNT STATUS</p>
-      <h2 class="success">Active</h2>
-      <p>Your administrator account is active.</p>
+<div class="dashboard">
+  <div class="page-heading">
+    <div>
+      <div class="breadcrumbs"><span>Pick2Win Ops</span><span class="crumb-separator">›</span><span>Dashboard</span></div>
+      <h1>Master Dashboard</h1>
+    </div>
+    <div class="heading-actions">
+      <button class="button button-quiet" type="button">Last 30 days <span aria-hidden="true">⌄</span></button>
+      <button class="button button-primary" type="button">Export Report</button>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+    <section class="card kpi-card" *ngFor="let metric of metrics">
+      <div class="kpi-topline">
+        <h2>{{ metric.label }}</h2>
+        <span class="change" [class.change-down]="metric.direction === 'down'">
+          <span aria-hidden="true">{{ metric.direction === 'down' ? '↓' : '↑' }}</span> {{ metric.change }}
+        </span>
+      </div>
+      <div class="kpi-value">{{ metric.value }}</div>
+      <p class="kpi-subtitle">{{ metric.subtitle }}</p>
+      <div class="sparkline" [class.sparkline-green]="metric.color === 'green'"
+        [class.sparkline-blue]="metric.color === 'blue'" [class.sparkline-amber]="metric.color === 'amber'"
+        aria-hidden="true">
+        <span *ngFor="let point of metric.spark" [style.height.%]="point"></span>
+      </div>
     </section>
-    <section class="card">
-      <p class="eyebrow">YOUR ROLE</p>
-      <h2>{{ user.role === "super_admin" ? "Super admin" : "Admin" }}</h2>
-      <p>Access follows your assigned role.</p>
+
+    <section class="card activity-card">
+      <div class="card-heading activity-heading">
+        <div>
+          <h2>Activity Analytics</h2>
+          <p>DAU · WAU · MAU — last 14 days</p>
+        </div>
+        <div class="chart-legend">
+          <span><i class="legend-dot red-dot"></i>DAU</span>
+          <span><i class="legend-dot blue-dot"></i>WAU</span>
+          <span><i class="legend-dot violet-dot"></i>MAU</span>
+        </div>
+      </div>
+      <div class="activity-totals">
+        <div><span>DAU</span><strong>14,206</strong></div>
+        <div><span>WAU</span><strong>27,440</strong></div>
+        <div><span>MAU</span><strong>38,412</strong></div>
+      </div>
+      <div class="chart-wrap">
+        <svg class="activity-chart" viewBox="0 0 680 190" role="img" aria-label="Daily, weekly and monthly active user trends over 14 days">
+          <g *ngFor="let line of chartGrid">
+            <line x1="38" x2="670" [attr.y1]="line.y" [attr.y2]="line.y"></line>
+            <text x="0" [attr.y]="line.y + 3">{{ line.label }}</text>
+          </g>
+          <g *ngFor="let series of activitySeries">
+            <path class="area" *ngIf="series.fill" [attr.d]="series.area" [attr.fill]="series.color"></path>
+            <path class="series-line" [attr.d]="series.path" [attr.stroke]="series.color"></path>
+          </g>
+          <g class="chart-dates">
+            <text x="38" y="185">Apr 26</text>
+            <text x="174" y="185">Apr 29</text>
+            <text x="318" y="185">May 2</text>
+            <text x="462" y="185">May 5</text>
+            <text x="606" y="185">May 8</text>
+          </g>
+        </svg>
+      </div>
+    </section>
+
+    <section class="card user-mix-card">
+      <div class="card-heading"><h2>User Mix</h2></div>
+      <div class="donut-wrap">
+        <div class="donut">
+          <div class="donut-label"><strong>48,206</strong><span>total users</span></div>
+        </div>
+      </div>
+      <div class="mix-legend">
+        <div><i class="legend-dot red-dot"></i><span>Student Users</span><strong>12,420</strong><small>25.8%</small></div>
+        <div><i class="legend-dot violet-dot"></i><span>Subscription</span><strong>8,612</strong><small>17.9%</small></div>
+        <div><i class="legend-dot gray-dot"></i><span>Normal Users</span><strong>27,174</strong><small>56.3%</small></div>
+      </div>
+    </section>
+
+    <section class="card risk-card">
+      <div class="card-heading">
+        <h2>RG Risk Pyramid</h2>
+        <span class="status-chip chip-red"><i class="status-dot"></i>27 high</span>
+      </div>
+      <div class="risk-list">
+        <div class="risk-row" *ngFor="let risk of riskLevels">
+          <div class="risk-label"><span>{{ risk.label }}</span><strong>{{ risk.value }}</strong></div>
+          <div class="progress-track"><span [style.width.%]="risk.percent" [style.background]="risk.color"></span></div>
+        </div>
+      </div>
+      <div class="card-footer"><span>2 of 27 escalated</span><a routerLink="/admin/dashboard">Review <span aria-hidden="true">→</span></a></div>
+    </section>
+
+    <section class="card football-card">
+      <div class="football-heading">
+        <div>
+          <h2><i class="live-pulse"></i>Live Football Operations</h2>
+          <p>4 live · 12 upcoming · prize pool £142,400</p>
+        </div>
+        <button class="button button-quiet" type="button">Open Match Manager <span aria-hidden="true">→</span></button>
+      </div>
+      <div class="table-wrap">
+        <table class="match-table">
+          <thead>
+            <tr><th>Match</th><th>Series</th><th>Kick-off</th><th>Contests</th><th>Prize Pool</th><th>Fill</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let match of matches">
+              <td><div class="match-name"><span class="team-mark">{{ match.home.charAt(0) }}</span><strong>{{ match.home }} <span>vs</span> {{ match.away }}</strong></div></td>
+              <td>{{ match.series }}</td>
+              <td class="numeric">{{ match.time }}</td>
+              <td class="numeric">{{ match.contests }}</td>
+              <td class="numeric prize">{{ match.prize }}</td>
+              <td>
+                <div class="fill-cell"><div class="progress-track"><span [style.width.%]="match.fill" [class.fill-green]="match.fill > 70"></span></div><small>{{ match.fill }}%</small></div>
+              </td>
+              <td><span class="status-chip" [ngClass]="'chip-' + match.status"><i class="status-dot"></i>{{ match.status }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card wallet-card">
+      <div class="card-heading"><h2>Wallet Monitor</h2><span class="status-chip chip-neutral">Live</span></div>
+      <div class="balance-list">
+        <div class="balance-row" *ngFor="let balance of balances">
+          <div class="balance-label"><span>{{ balance.label }}</span><strong>{{ balance.value }}</strong></div>
+          <div class="progress-track"><span [style.width.%]="balance.percent" [style.background]="balance.color"></span></div>
+        </div>
+      </div>
+      <div class="revenue-note">
+        <strong>Net Operator Revenue: <span>£284.6K</span></strong>
+        <small>after £18.2K Stripe · £4.6K Sumsub · £42K bonus</small>
+      </div>
+    </section>
+
+    <section class="card approvals-card">
+      <div class="card-heading"><h2>Approval Queue</h2><span class="status-chip chip-red"><i class="status-dot"></i>41</span></div>
+      <div class="approval-list">
+        <div class="approval-row" *ngFor="let item of approvals">
+          <span class="approval-icon">{{ item.icon }}</span>
+          <div><strong>{{ item.label }}</strong><small *ngIf="item.priority">{{ item.priority }}</small></div>
+          <b>{{ item.count }}</b>
+        </div>
+      </div>
+      <button class="button button-primary review-button" type="button">Open Review Center</button>
     </section>
   </div>
-  <section class="card">
-    <h2>Account overview</h2>
-    <p>View your account details and administrator profile.</p>
-    <a class="action-link" routerLink="/admin/profile">View my profile →</a>
-  </section>
-</ng-container>
-<!-- gfhgj -->
+</div>

@@ -1,0 +1,83 @@
+<div class="records-page">
+  <section class="metric-grid" aria-label="User statistics">
+    <article class="metric-card" *ngFor="let item of page.metrics">
+      <div class="metric-label">{{ item.label }}</div>
+      <span class="metric-change" *ngIf="item.change">↑ {{ item.change }}</span>
+      <div class="metric-value">{{ item.value }}</div>
+      <p>{{ item.detail }}</p>
+      <svg class="metric-sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
+        <polyline [attr.points]="item.sparkline" [attr.stroke]="item.color"></polyline>
+      </svg>
+    </article>
+  </section>
+
+  <section class="records-card">
+    <header class="records-heading">
+      <div class="heading-copy">
+        <h2>{{ page.title }}</h2>
+        <p>{{ page.description }}</p>
+      </div>
+    </header>
+
+    <div class="filter-row" role="group" [attr.aria-label]="page.title + ' filters'">
+      <button *ngFor="let filter of page.filters" type="button" class="filter-chip"
+        [class.filter-active]="activeFilter === filter.key" [attr.aria-pressed]="activeFilter === filter.key"
+        (click)="setFilter(filter.key)">{{ filter.label }}</button>
+    </div>
+
+    <p class="notice" role="status" *ngIf="notice">{{ notice }}</p>
+
+    <div class="table-scroll">
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th scope="col">User</th>
+            <th scope="col" *ngFor="let heading of page.columns">{{ heading }}</th>
+            <th scope="col" *ngIf="hasActions">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let record of filteredRows">
+            <td class="user-cell">
+              <a *ngIf="record.id === 'UK-48291'" class="user-avatar" routerLink="/admin/users/profile"
+                [attr.aria-label]="'Open ' + record.name + ' profile'">
+                {{ record.initials }}
+              </a>
+              <span *ngIf="record.id !== 'UK-48291'" class="user-avatar" aria-hidden="true">{{ record.initials }}</span>
+              <a *ngIf="record.id === 'UK-48291'" class="user-name" routerLink="/admin/users/profile">
+                <strong>{{ record.name }}</strong><small>{{ record.id }}</small>
+              </a>
+              <span *ngIf="record.id !== 'UK-48291'" class="user-name">
+                <strong>{{ record.name }}</strong><small>{{ record.id }}</small>
+              </span>
+            </td>
+            <td *ngFor="let item of record.cells">
+              <span class="cell-badge" *ngIf="item.badge" [ngClass]="'tone-' + (item.tone || 'muted')">{{ item.value }}</span>
+              <span class="cell-value" *ngIf="!item.badge" [ngClass]="'tone-' + (item.tone || 'default')">{{ item.value }}</span>
+              <span class="cell-progress" *ngIf="item.progress !== undefined">
+                <span [style.width.%]="item.progress" [ngClass]="'progress-' + (item.tone || 'blue')"></span>
+              </span>
+            </td>
+            <td *ngIf="record.action">
+              <a *ngIf="record.action === 'View profile'" class="row-action"
+                routerLink="/admin/users/profile" [ngClass]="'tone-' + (record.actionTone || 'blue')">{{ record.action }}</a>
+              <button *ngIf="record.action !== 'View profile'" type="button"
+                class="row-action" [ngClass]="'tone-' + (record.actionTone || 'blue')"
+                (click)="notice = record.action + ' selected for ' + record.name + '.'">{{ record.action }}</button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredRows.length === 0">
+            <td class="empty-state" [attr.colspan]="page.columns.length + 2">
+              <strong>No matching records</strong>
+              <span>Try another filter or search term.</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <footer class="table-footer">
+      <span>Showing {{ filteredRows.length }} of {{ page.rows.length }} records</span>
+      <span>Data shown for demonstration</span>
+    </footer>
+  </section>
+</div>

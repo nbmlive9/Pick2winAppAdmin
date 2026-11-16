@@ -1,0 +1,15 @@
+<section class="reports-grid">
+  <article class="report-category" *ngFor="let category of categories">
+    <header>
+      <span class="category-icon" [style.background]="'linear-gradient(135deg, ' + category.color + ', ' + category.color + '88)'">{{ category.icon }}</span>
+      <span><strong>{{ category.name }}</strong><small>{{ category.reports.length }} reports · CSV / XLSX / PDF</small></span>
+    </header>
+    <div class="report-list">
+      <div class="report-row" *ngFor="let report of category.reports">
+        <span class="report-info"><strong>{{ report.name }}</strong><small>{{ report.detail }}</small></span>
+        <time>{{ report.lastRun }}</time>
+        <button type="button" class="download-button" [attr.aria-label]="'Download ' + report.name">↓</button>
+      </div>
+    </div>
+  </article>
+</section>

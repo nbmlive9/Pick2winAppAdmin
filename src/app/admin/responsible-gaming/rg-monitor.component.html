@@ -1,0 +1,115 @@
+<div class="monitor-page">
+  <section class="metric-grid" aria-label="Responsible gaming overview statistics">
+    <app-rg-metric-card *ngFor="let metric of metrics" [metric]="metric"></app-rg-metric-card>
+  </section>
+
+  <section class="panel loss-panel">
+    <header class="panel-heading">
+      <div>
+        <h2>Consecutive Loss Months</h2>
+        <p>Trigger ladder · auto-flagging by RG engine</p>
+      </div>
+      <span class="live-chip">Live</span>
+    </header>
+    <div class="loss-steps">
+      <article class="loss-step" *ngFor="let step of lossSteps" [style.--step-color]="step.color">
+        <div class="step-index"><strong>{{ step.number }}</strong><span>MO</span></div>
+        <div class="step-count">{{ step.count }}</div>
+        <p>{{ step.label }}</p>
+      </article>
+    </div>
+    <div class="rule-list">
+      <p>If deposits = limit AND winnings = £0 → flag Monthly Loss</p>
+      <p>2× consecutive → reminder · 4× → compliance · 5× → exclude</p>
+    </div>
+  </section>
+
+  <section class="panel policy-panel">
+    <h2>Limit Reduction</h2>
+    <div class="policy-box">
+      <h3>Policy</h3>
+      <p class="policy-ok">Users can reduce limits</p>
+      <p class="policy-ok">One-time reduction allowed</p>
+      <p class="policy-block">Cannot increase themselves</p>
+      <p class="policy-block">Cannot reduce multiple times</p>
+    </div>
+    <div class="policy-totals">
+      <div><span>Reductions Today</span><strong>14</strong></div>
+      <div><span>This Month</span><strong>286</strong></div>
+    </div>
+  </section>
+
+  <section class="panel limit-panel">
+    <h2>Monthly Deposit Limits</h2>
+    <article class="limit-tier" *ngFor="let tier of limitTiers">
+      <div class="tier-heading">
+        <div><strong>{{ tier.label }}</strong><small>{{ tier.note }}</small></div>
+        <b [style.color]="tier.color">{{ tier.amount }}</b>
+      </div>
+      <div class="tier-progress"><span [style.width.%]="tier.usage" [style.background]="tier.color"></span></div>
+      <small class="tier-usage">{{ tier.usage }}% used</small>
+    </article>
+    <div class="limit-warning">
+      <strong>Increase requests require admin review.</strong>
+      <span>Auto-blocked from user-facing app.</span>
+    </div>
+  </section>
+
+  <section class="panel watch-panel">
+    <header class="panel-heading watch-heading">
+      <div>
+        <h2>High-Risk User Watchlist <span class="risk-count">● 27</span></h2>
+        <p>Sorted by risk score · top 8 shown</p>
+      </div>
+      <div class="watch-filters" role="group" aria-label="High-risk user filters">
+        <button *ngFor="let filter of watchFilters" type="button" class="filter-chip"
+          [class.filter-active]="activeFilter === filter.key" [attr.aria-pressed]="activeFilter === filter.key"
+          (click)="setFilter(filter.key)">{{ filter.label }}</button>
+      </div>
+    </header>
+    <p *ngIf="notice" class="notice" role="status">{{ notice }}</p>
+    <div class="table-scroll">
+      <table class="watch-table">
+        <thead>
+          <tr><th>User</th><th>Type</th><th>Limit Usage</th><th>Loss Months</th><th>Net Loss</th><th>Triggers</th><th>Risk</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of filteredWatchRows">
+            <td class="user-cell">
+              <span class="user-avatar">{{ getInitials(row.name) }}</span>
+              <span class="user-copy"><strong>{{ row.name }}</strong><small>{{ row.id }}</small></span>
+            </td>
+            <td><span class="tier-chip" [class.student-chip]="row.tier === 'Student'">{{ row.tier }}</span></td>
+            <td>
+              <span class="usage-value">{{ row.usage }}</span>
+              <span class="usage-bar"><i [style.width.%]="row.usagePercent"></i></span>
+            </td>
+            <td><span class="streak-chip" [class.streak-high]="row.streak.startsWith('4') || row.streak.startsWith('5')"
+              [class.streak-medium]="row.streak.startsWith('3')">{{ row.streak }}</span></td>
+            <td class="loss-value">{{ row.loss }}</td>
+            <td><div class="trigger-list"><span *ngFor="let trigger of row.triggers">{{ trigger }}</span></div></td>
+            <td><div class="risk-score"><span class="risk-bar"><i [ngClass]="getRiskTone(row.risk)" [style.width.%]="row.risk"></i></span>
+              <strong [ngClass]="getRiskTone(row.risk)">{{ row.risk }}</strong></div></td>
+            <td><button type="button" class="row-action" [class.row-primary]="row.action === 'Suspend'"
+              (click)="handleRowAction(row.action, row.name)">{{ row.action }}</button></td>
+          </tr>
+          <tr *ngIf="filteredWatchRows.length === 0">
+            <td class="empty-state" colspan="8">No matching high-risk users.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel alerts-panel">
+    <header class="panel-heading alerts-heading">
+      <h2>RG Alerts <i aria-hidden="true"></i></h2>
+      <span>12 today</span>
+    </header>
+    <div class="alert-list">
+      <article class="alert-item" *ngFor="let alert of alerts" [ngClass]="'severity-' + alert.severity">
+        <p>{{ alert.message }}</p><time>{{ alert.time }}</time>
+      </article>
+    </div>
+  </section>
+</div>

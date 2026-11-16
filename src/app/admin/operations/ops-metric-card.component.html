@@ -1,0 +1,13 @@
+<article class="metric-card">
+  <div class="metric-topline">
+    <h2>{{ metric.label }}</h2>
+    <span *ngIf="metric.change" class="metric-change" [class.change-down]="metric.direction === 'down'">
+      {{ metric.direction === 'down' ? '↓' : '↑' }} {{ metric.change }}
+    </span>
+  </div>
+  <strong class="metric-value">{{ metric.value }}</strong>
+  <p>{{ metric.detail }}</p>
+  <svg class="metric-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+    <polyline [attr.points]="points" [attr.stroke]="metric.color"></polyline>
+  </svg>
+</article>

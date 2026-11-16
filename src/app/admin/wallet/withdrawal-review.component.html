@@ -1,0 +1,95 @@
+<div class="withdrawal-page">
+  <section class="queue-panel panel">
+    <header class="queue-heading">
+      <div><h2>Pending Withdrawals · 24</h2><p>3 flagged · oldest 8h 14m · total £18,420</p></div>
+      <div class="filter-list" role="group" aria-label="Withdrawal filters">
+        <button *ngFor="let filter of filters" type="button" class="filter-chip"
+          [class.filter-active]="activeFilter === filter.key" [attr.aria-pressed]="activeFilter === filter.key"
+          (click)="setFilter(filter.key)">{{ filter.label }}</button>
+      </div>
+    </header>
+    <p *ngIf="notice" class="notice" role="status">{{ notice }}</p>
+    <div class="table-scroll">
+      <table class="queue-table">
+        <thead><tr><th class="select-column"><span class="sr-only">Select</span></th><th>User</th><th>Amount</th><th>Method</th><th>Checks</th><th>Wait</th><th>Risk</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of filteredWithdrawals" [class.selected-row]="selectedId === row.id" (click)="selectWithdrawal(row)">
+            <td><input type="checkbox" [checked]="selectedIds.has(row.id)" [attr.aria-label]="'Select ' + row.name"
+              (click)="toggleSelected(row, $event)" /></td>
+            <td>
+              <span class="person-cell">
+                <i class="avatar">{{ row.initials }}</i>
+                <span><span class="person-name">{{ row.name }} <b *ngIf="row.flag" class="flag-pill">{{ row.flag }}</b></span><small>{{ row.id }} · {{ row.tier }}</small></span>
+              </span>
+            </td>
+            <td class="mono amount-cell">{{ row.amount }}</td>
+            <td class="mono method-cell">{{ row.method }}</td>
+            <td>
+              <span class="check-pips">
+                <i [class]="row.checks.kyc === 'ok' ? 'pip-ok' : 'pip-missing'" title="KYC">K</i>
+                <i [class]="row.checks.aml === 'ok' ? 'pip-ok' : row.checks.aml === 'medium' ? 'pip-warn' : 'pip-bad'" title="AML">A</i>
+                <i class="pip-ok" title="Balance">B</i>
+                <i [class]="row.checks.abuse === 'ok' ? 'pip-ok' : 'pip-missing'" title="Pattern">P</i>
+                <i [class]="row.checks.suspicious === 'ok' ? 'pip-ok' : 'pip-missing'" title="Suspicious activity">S</i>
+              </span>
+            </td>
+            <td class="mono muted-cell">{{ row.wait }}</td>
+            <td>
+              <span class="risk-score">
+                <i class="risk-track"><b [style.width.%]="row.risk" [style.background]="riskColor(row.risk)"></b></i>
+                <strong [style.color]="riskColor(row.risk)">{{ row.risk }}</strong>
+              </span>
+            </td>
+          </tr>
+          <tr *ngIf="filteredWithdrawals.length === 0"><td colspan="7" class="empty-state">No matching withdrawals.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <aside class="detail-panel panel">
+    <header class="user-summary">
+      <div class="identity">
+        <i class="large-avatar">{{ selectedWithdrawal.initials }}</i>
+        <span><strong>{{ selectedWithdrawal.name }} <b class="risk-pill"><i></i>Risk {{ selectedWithdrawal.risk }}</b></strong>
+          <small>{{ selectedWithdrawal.id }} · joined 11mo · subscriber</small></span>
+      </div>
+      <div class="withdraw-summary">
+        <div><span class="eyebrow">Withdraw Amount</span><strong>{{ selectedWithdrawal.amount }}</strong></div>
+        <div><span class="eyebrow">To</span><b class="mono">{{ selectedWithdrawal.method.replace('Bank', 'Bank Account').replace('Visa', 'Visa Debit') }}</b><small>verified Apr 12 · primary method</small></div>
+      </div>
+    </header>
+
+    <div class="detail-content">
+      <section>
+        <h3>Verification Checks</h3>
+        <div class="verification-list">
+          <div class="verification-row verified"><i>✓</i><span><strong>KYC1 verified</strong><small>Sumsub SS-9128 · Apr 12, 2026</small></span></div>
+          <div class="verification-row verified"><i>✓</i><span><strong>Wallet balance sufficient</strong><small>£1,840 available · withdrawing {{ selectedWithdrawal.amount }}</small></span></div>
+          <div class="verification-row verified"><i>✓</i><span><strong>Bonus abuse: clear</strong><small>Wagering 8.4× · threshold 1.5×</small></span></div>
+          <div class="verification-row warning"><i>!</i><span><strong>AML risk: HIGH</strong><small>Linked to active compliance case CMP-9178</small></span></div>
+          <div class="verification-row warning"><i>!</i><span><strong>Multiple accounts flagged</strong><small>4 accounts on shared device DEV-AX14</small></span></div>
+        </div>
+      </section>
+
+      <section>
+        <h3>Recent Activity</h3>
+        <div class="activity-list">
+          <div><time>6h ago</time><span>Deposit £1,000 via Visa •••8821</span><b>+£1,000</b></div>
+          <div><time>5h ago</time><span>Joined Mega Contest · entry £25</span><b>−£25</b></div>
+          <div><time>4h ago</time><span>Won contest · placed #4</span><b class="positive">+£420</b></div>
+          <div><time>2h ago</time><span>Withdrawal request initiated</span><b class="pending">−£1,400</b></div>
+        </div>
+      </section>
+
+      <label class="note-label" for="decision-note">Admin Note</label>
+      <textarea id="decision-note" placeholder="Add justification for decision…"></textarea>
+      <div class="decision-actions">
+        <button type="button" (click)="handleDecision('Hold')">Hold</button>
+        <button type="button" (click)="handleDecision('Request Verification')">Request Verification</button>
+        <button type="button" class="reject-button" (click)="handleDecision('Reject')">Reject</button>
+        <button type="button" class="approve-button" (click)="handleDecision('Approve')">Approve</button>
+      </div>
+    </div>
+  </aside>
+</div>
