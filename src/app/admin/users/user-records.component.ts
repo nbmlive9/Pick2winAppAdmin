@@ -781,7 +781,9 @@ export class UserRecordsComponent implements OnInit {
   isStudentView = false;
   isSubscriptionView = false;
   isConsentView = false;
+  isDeletedView = false;
   private subscriptionLoadSequence = 0;
+  private deletedLoadSequence = 0;
   studentPagination: {
     total: number;
     page: number;
@@ -800,6 +802,12 @@ export class UserRecordsComponent implements OnInit {
     limit: number;
     totalPages: number;
   } | null = null;
+  deletedPagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  } | null = null;
 
   constructor(
     private route: ActivatedRoute,
@@ -813,20 +821,26 @@ export class UserRecordsComponent implements OnInit {
     this.isStudentView = initialView === 'students';
     this.isSubscriptionView = initialView === 'subscriptions';
     this.isConsentView = initialView === 'consents';
+    this.isDeletedView = initialView === 'deleted';
+    if (this.isDeletedView) this.setDeletedLoadingPage();
   }
 
   ngOnInit(): void {
     this.route.data.subscribe((data) => {
+      this.deletedLoadSequence++;
+      this.loading = false;
       const view = data['view'] as UserView | undefined;
       this.page = view ? pages[view] : pages.all;
       this.isStudentView = view === 'students';
       this.isSubscriptionView = view === 'subscriptions';
       this.isConsentView = view === 'consents';
+      this.isDeletedView = view === 'deleted';
       this.activeFilter = 'all';
       this.searchTerm = '';
       this.studentPagination = null;
       this.subscriptionPagination = null;
       this.consentPagination = null;
+      this.deletedPagination = null;
       this.notice = '';
       if (view === 'students') {
         this.page = {
@@ -866,8 +880,25 @@ export class UserRecordsComponent implements OnInit {
           })),
         };
         this.loadConsents(1);
+      } else if (view === 'deleted') {
+        this.setDeletedLoadingPage();
+        this.loadDeletedAccounts(1);
       }
     });
+  }
+
+  private setDeletedLoadingPage(): void {
+    this.page = {
+      ...pages.deleted,
+      description: 'Loading deleted account records…',
+      rows: [],
+      metrics: pages.deleted.metrics.map((item) => ({
+        ...item,
+        value: '—',
+        detail: 'Loading…',
+        sparkline: undefined,
+      })),
+    };
   }
 
   private loadStudents(pageNumber: number): void {
@@ -1383,6 +1414,183 @@ export class UserRecordsComponent implements OnInit {
     };
   }
 
+  private loadDeletedAccounts(pageNumber: number): void {
+    this.loading = true;
+    const requestSequence = ++this.deletedLoadSequence;
+    this.admin.getDeletedAccounts(pageNumber, 20).subscribe({
+      next: (response: any) => {
+        if (requestSequence !== this.deletedLoadSequence) return;
+        this.loading = false;
+        if (!Array.isArray(response?.data)) {
+          this.showDeletedLoadFailure(
+            'The deleted accounts response was not in the expected format.',
+          );
+          return;
+        }
+
+        const summary = response.summary ?? {};
+        const pagination = response.pagination ?? {};
+        const number = (value: number | null | undefined) =>
+          new Intl.NumberFormat('en-GB').format(Number(value) || 0);
+        const money = (value: number | null | undefined) =>
+          new Intl.NumberFormat('en-GB', {
+            style: 'currency',
+            currency: 'GBP',
+            maximumFractionDigits: 2,
+          }).format(Number(value) || 0);
+        const date = (value: string | null | undefined) => {
+          if (!value) return '—';
+          const parsed = new Date(value);
+          return Number.isNaN(parsed.getTime())
+            ? '—'
+            : parsed.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              });
+        };
+        this.page = {
+          ...pages.deleted,
+          description: `${number(summary.total_deleted)} deleted accounts · ${number(summary.pending_erasure)} pending erasure · ${number(summary.erasure_window_days)}-day erasure window`,
+          metrics: [
+            metric(
+              'Deleted (30d)',
+              number(summary.deleted_30d),
+              `${number(summary.deleted_30d_user)} user requested · ${number(summary.deleted_30d_admin)} admin`,
+              '#ff3b47',
+            ),
+            metric(
+              'Total Deleted',
+              number(summary.total_deleted),
+              'Accounts deleted',
+              '#a78bfa',
+            ),
+            metric(
+              'Data Erased',
+              number(summary.data_erased),
+              'Erasure completed',
+              '#2bd4a1',
+            ),
+            metric(
+              'Pending Erasure',
+              number(summary.pending_erasure),
+              `${number(summary.erasure_window_days)}-day erasure window`,
+              '#ffb627',
+            ),
+          ],
+          columns: [
+            'Reason',
+            'Requested',
+            'Deleted By',
+            'Balance at Delete',
+            'Erasure Due',
+            'Erasure Flags',
+            'Status',
+          ],
+          filters: [
+            { label: 'All', key: 'all' },
+            { label: 'User Request', key: 'user-request' },
+            { label: 'Admin', key: 'admin' },
+            { label: 'Pending Erasure', key: 'pending-erasure' },
+            { label: 'Erased', key: 'erased' },
+          ],
+          rows: response.data.map((account: any): UserRow => {
+            const status = String(account.status ?? 'unknown').toLowerCase();
+            const deletedBy = String(account.deleted_by ?? 'Unknown');
+            const overdue = Boolean(account.overdue);
+            const hasBalance = Boolean(account.has_balance);
+            const filters = [
+              ...(deletedBy.toLowerCase() === 'user'
+                ? ['user-request']
+                : ['admin']),
+              ...(status === 'pending' ? ['pending-erasure'] : []),
+              ...(status === 'erased' ? ['erased'] : []),
+            ];
+            const flagLabels = [
+              ...(overdue ? ['Overdue'] : []),
+              ...(hasBalance ? ['Balance remains'] : []),
+            ];
+            const statusTone: Tone =
+              status === 'erased'
+                ? 'positive'
+                : status === 'pending'
+                  ? 'warning'
+                  : 'muted';
+            const statusLabel =
+              status === 'erased' && account.erased_at
+                ? `Erased · ${date(account.erased_at)}`
+                : status.charAt(0).toUpperCase() + status.slice(1);
+            return row(
+              String(account.name ?? 'Unknown user'),
+              String(account.usercode ?? account.user_id ?? '—'),
+              [
+                cell(String(account.reason ?? '—')),
+                cell(date(account.requested_at)),
+                cell(
+                  deletedBy,
+                  deletedBy.toLowerCase() === 'user' ? 'muted' : 'warning',
+                ),
+                cell(
+                  money(account.balance_at_delete),
+                  hasBalance ? 'warning' : 'muted',
+                ),
+                cell(
+                  date(account.erasure_due_at),
+                  overdue ? 'negative' : 'muted',
+                ),
+                cell(
+                  flagLabels.length ? flagLabels.join(' · ') : '—',
+                  overdue || hasBalance ? 'warning' : 'muted',
+                ),
+                cell(
+                  statusLabel,
+                  statusTone,
+                  true,
+                ),
+              ],
+              filters,
+            );
+          }),
+        };
+        this.deletedPagination = {
+          total: Number(pagination.total) || 0,
+          page: Number(pagination.page) || pageNumber,
+          limit: Number(pagination.limit) || 20,
+          totalPages: Math.max(1, Number(pagination.totalPages) || 1),
+        };
+      },
+      error: (error: HttpErrorResponse) => {
+        if (requestSequence !== this.deletedLoadSequence) return;
+        const detail =
+          typeof error.error?.message === 'string'
+            ? error.error.message
+            : error.status === 0
+              ? 'The API could not be reached (network or CORS error).'
+              : `HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`;
+        this.showDeletedLoadFailure(
+          `Could not load deleted accounts: ${detail}`,
+        );
+      },
+    });
+  }
+
+  private showDeletedLoadFailure(message: string): void {
+    this.loading = false;
+    this.notice = message;
+    this.deletedPagination = null;
+    this.page = {
+      ...pages.deleted,
+      description: 'Deleted account data is unavailable.',
+      metrics: pages.deleted.metrics.map((item) => ({
+        ...item,
+        value: '—',
+        detail: 'Unavailable',
+        sparkline: undefined,
+      })),
+      rows: [],
+    };
+  }
+
   get studentRangeLabel(): string {
     if (!this.studentPagination || this.studentPagination.total === 0)
       return 'Showing 0 of 0 records';
@@ -1397,6 +1605,7 @@ export class UserRecordsComponent implements OnInit {
 
   get activeServerPagination() {
     if (this.isConsentView) return this.consentPagination;
+    if (this.isDeletedView) return this.deletedPagination;
     return this.isSubscriptionView ? this.subscriptionPagination : this.studentPagination;
   }
 
@@ -1412,6 +1621,7 @@ export class UserRecordsComponent implements OnInit {
     const pagination = this.activeServerPagination;
     if (!pagination || pagination.page <= 1) return;
     if (this.isConsentView) this.loadConsents(pagination.page - 1);
+    else if (this.isDeletedView) this.loadDeletedAccounts(pagination.page - 1);
     else if (this.isSubscriptionView) this.loadSubscriptions(pagination.page - 1);
     else this.loadStudents(pagination.page - 1);
   }
@@ -1420,6 +1630,7 @@ export class UserRecordsComponent implements OnInit {
     const pagination = this.activeServerPagination;
     if (!pagination || pagination.page >= pagination.totalPages) return;
     if (this.isConsentView) this.loadConsents(pagination.page + 1);
+    else if (this.isDeletedView) this.loadDeletedAccounts(pagination.page + 1);
     else if (this.isSubscriptionView) this.loadSubscriptions(pagination.page + 1);
     else this.loadStudents(pagination.page + 1);
   }

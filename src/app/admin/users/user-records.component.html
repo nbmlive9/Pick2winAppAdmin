@@ -86,13 +86,13 @@
       </table>
     </div>
     <footer class="table-footer">
-      <span>{{ activeServerPagination ? serverRangeLabel : isStudentView || isSubscriptionView || isConsentView ? (loading ? 'Loading records…' : (isSubscriptionView ? 'Subscription records unavailable' : isConsentView ? 'Consent records unavailable' : 'Student records unavailable')) : 'Showing ' + filteredRows.length + ' of ' + page.rows.length + ' records' }}</span>
+      <span>{{ activeServerPagination ? serverRangeLabel : isStudentView || isSubscriptionView || isConsentView || isDeletedView ? (loading ? 'Loading records…' : (isSubscriptionView ? 'Subscription records unavailable' : isConsentView ? 'Consent records unavailable' : isDeletedView ? 'Deleted account records unavailable' : 'Student records unavailable')) : 'Showing ' + filteredRows.length + ' of ' + page.rows.length + ' records' }}</span>
       <div class="pagination-controls" *ngIf="activeServerPagination as pagination">
         <button type="button" (click)="previousServerPage()" [disabled]="pagination.page <= 1">Previous</button>
         <span>Page {{ pagination.page }} of {{ pagination.totalPages }}</span>
         <button type="button" (click)="nextServerPage()" [disabled]="pagination.page >= pagination.totalPages">Next</button>
       </div>
-      <span *ngIf="!activeServerPagination && !isStudentView && !isSubscriptionView && !isConsentView">Data shown for demonstration</span>
+      <span *ngIf="!activeServerPagination && !isStudentView && !isSubscriptionView && !isConsentView && !isDeletedView">Data shown for demonstration</span>
     </footer>
   </section>
 </div>

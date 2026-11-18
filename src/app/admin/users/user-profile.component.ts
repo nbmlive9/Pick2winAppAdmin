@@ -21,8 +21,18 @@ export class UserProfileComponent implements OnInit {
   data: any = null;
   loading = false;
   notice = '';
+  userNotes: any[] = [];
+  notesLoading = false;
+  notesNotice = '';
+  notesPagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  } | null = null;
   timelineFilter = 'all';
   private loadSequence = 0;
+  private notesLoadSequence = 0;
 
   constructor(
     private route: ActivatedRoute,
@@ -37,6 +47,12 @@ export class UserProfileComponent implements OnInit {
         return;
       }
       this.userId = userId;
+      this.notesLoadSequence++;
+      this.data = null;
+      this.userNotes = [];
+      this.notesLoading = false;
+      this.notesNotice = '';
+      this.notesPagination = null;
       this.loadProfile();
     });
   }
@@ -57,6 +73,7 @@ export class UserProfileComponent implements OnInit {
           return;
         }
         this.data = response.data;
+        this.loadUserNotes(1);
       },
       error: (error: HttpErrorResponse) => {
         if (requestSequence !== this.loadSequence) return;
@@ -160,6 +177,74 @@ export class UserProfileComponent implements OnInit {
 
   get adminNotes(): any[] {
     return Array.isArray(this.data?.admin_notes) ? this.data.admin_notes : [];
+  }
+
+  loadUserNotes(page = 1): void {
+    if (!this.userId) return;
+    this.notesLoading = true;
+    this.notesNotice = '';
+    const requestSequence = ++this.notesLoadSequence;
+    this.admin.getUserNotes(this.userId, page, 20).subscribe({
+      next: (response: any) => {
+        if (requestSequence !== this.notesLoadSequence) return;
+        this.notesLoading = false;
+        if (!Array.isArray(response?.data)) {
+          this.userNotes = [];
+          this.notesPagination = null;
+          this.notesNotice = 'The user notes response was not in the expected format.';
+          return;
+        }
+        this.userNotes = response.data;
+        const pagination = response.pagination ?? {};
+        this.notesPagination = {
+          total: Number(pagination.total) || 0,
+          page: Number(pagination.page) || page,
+          limit: Number(pagination.limit) || 20,
+          totalPages: Math.max(0, Number(pagination.totalPages) || 0),
+        };
+      },
+      error: (error: HttpErrorResponse) => {
+        if (requestSequence !== this.notesLoadSequence) return;
+        this.notesLoading = false;
+        this.userNotes = [];
+        this.notesPagination = null;
+        this.notesNotice =
+          typeof error.error?.message === 'string'
+            ? error.error.message
+            : error.status === 0
+              ? 'The notes API could not be reached (network or CORS error).'
+              : `Could not load user notes: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`;
+      },
+    });
+  }
+
+  previousUserNotesPage(): void {
+    if (this.notesPagination && this.notesPagination.page > 1)
+      this.loadUserNotes(this.notesPagination.page - 1);
+  }
+
+  nextUserNotesPage(): void {
+    if (
+      this.notesPagination &&
+      this.notesPagination.page < this.notesPagination.totalPages
+    )
+      this.loadUserNotes(this.notesPagination.page + 1);
+  }
+
+  noteText(note: any): string {
+    return String(
+      note?.note ?? note?.content ?? note?.message ?? note?.text ?? 'Note text unavailable',
+    );
+  }
+
+  noteAuthor(note: any): string {
+    return String(
+      note?.admin_name ?? note?.created_by ?? note?.author ?? note?.admin ?? 'Admin',
+    );
+  }
+
+  noteCreatedAt(note: any): string | null {
+    return note?.created_at ?? note?.createdAt ?? note?.timestamp ?? null;
   }
 
   money(value: unknown): string {

@@ -173,8 +173,24 @@
         <div class="support-row"><span>Reacted</span><b>{{ number(profileData.support?.reacted) }}</b></div>
         <div class="support-row"><span>Resolved</span><b class="pill green">{{ number(profileData.support?.resolved) }}</b></div>
         <div class="support-row"><span>Compliance cases</span><b>{{ complianceCases.length }}</b></div>
-        <div class="support-row"><span>Admin notes</span><b>{{ adminNotes.length }}</b></div>
+        <div class="support-row"><span>Admin notes</span><b>{{ notesPagination?.total ?? adminNotes.length }}</b></div>
         <button type="button" class="note-button" (click)="showAction('Admin note')">+ Add admin note</button>
+      </section>
+
+      <section class="panel admin-notes-panel">
+        <header class="section-title"><h3>Admin Notes</h3><span>{{ notesPagination?.total ?? adminNotes.length }} total</span></header>
+        <p class="empty-copy" *ngIf="notesLoading">Loading notes…</p>
+        <p class="action-notice" *ngIf="notesNotice" role="status">{{ notesNotice }}</p>
+        <article class="admin-note" *ngFor="let note of userNotes">
+          <p>{{ noteText(note) }}</p>
+          <small>{{ noteAuthor(note) }} · {{ formatDateTime(noteCreatedAt(note)) }}</small>
+        </article>
+        <p class="empty-copy" *ngIf="!notesLoading && !notesNotice && userNotes.length === 0">No admin notes for this user.</p>
+        <footer class="notes-pagination" *ngIf="notesPagination && notesPagination.totalPages > 1">
+          <button type="button" class="button" (click)="previousUserNotesPage()" [disabled]="notesPagination.page <= 1">Previous</button>
+          <span>Page {{ notesPagination.page }} of {{ notesPagination.totalPages }}</span>
+          <button type="button" class="button" (click)="nextUserNotesPage()" [disabled]="notesPagination.page >= notesPagination.totalPages">Next</button>
+        </footer>
       </section>
     </div>
   </div>

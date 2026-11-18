@@ -79,4 +79,28 @@ export class AdminService {
       { headers },
     );
   }
+
+  getUserNotes(userId: string | number, page = 1, limit = 20): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    const params = new HttpParams().set('page', page).set('limit', limit);
+    return this.http.get(
+      `${this.Base_URL}/getusernotes/${encodeURIComponent(String(userId))}`,
+      { headers, params },
+    );
+  }
+
+  getDeletedAccounts(page = 1, limit = 20): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    const params = new HttpParams().set('page', page).set('limit', limit);
+    return this.http.get(`${this.Base_URL}/getdeletedaccounts`, {
+      headers,
+      params,
+    });
+  }
 }
