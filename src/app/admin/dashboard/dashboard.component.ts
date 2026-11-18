@@ -1,4 +1,5 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { AdminService } from 'src/app/core/services/admin.service';
 
 interface DashboardMetric {
   label: string;
@@ -9,7 +10,6 @@ interface DashboardMetric {
   color: 'red' | 'green' | 'blue' | 'amber';
   spark: number[];
 }
-
 interface MatchRow {
   home: string;
   away: string;
@@ -26,113 +26,326 @@ interface MatchRow {
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
 })
-export class DashboardComponent {
-  readonly metrics: DashboardMetric[] = [
-    {
-      label: 'Active Users (30d)',
-      value: '38,412',
-      change: '12.4%',
-      direction: 'up',
-      subtitle: '48,206 registered · 79.7% active',
-      color: 'red',
-      spark: [25, 38, 34, 47, 57, 50, 66, 75, 68, 83, 91, 100, 95, 100],
-    },
-    {
-      label: 'Net Operator Revenue',
-      value: '£284.6K',
-      change: '8.2%',
-      direction: 'up',
-      subtitle: 'After Stripe + Sumsub + Bonus',
-      color: 'green',
-      spark: [20, 32, 27, 40, 48, 44, 58, 68, 63, 76, 88, 83, 96, 100],
-    },
-    {
-      label: 'Total Deposits',
-      value: '£1.42M',
-      change: '6.1%',
-      direction: 'up',
-      subtitle: 'Withdrawals £612K · 43.1%',
-      color: 'blue',
-      spark: [44, 41, 49, 59, 54, 64, 71, 66, 77, 84, 82, 93, 98, 100],
-    },
-    {
-      label: 'Compliance Queue',
-      value: '214',
-      change: '3.2%',
-      direction: 'down',
-      subtitle: '62 KYC0 · 138 KYC1 · 14 SoF',
-      color: 'amber',
-      spark: [34, 40, 37, 48, 45, 54, 50, 62, 58, 55, 68, 64, 75, 78],
-    },
-  ];
+export class DashboardComponent implements OnInit {
+  homeData: any = null;
+  constructor(private api: AdminService) {}
 
-  readonly chartGrid = [
-    { y: 25, label: '40K' },
-    { y: 57, label: '30K' },
-    { y: 89, label: '20K' },
-    { y: 121, label: '10K' },
-    { y: 153, label: '0' },
-  ];
+  ngOnInit(): void {
+    this.api
+      .getDashboardHome()
+      .subscribe((res: any) => (this.homeData = res?.data ?? null));
+  }
 
-  readonly activitySeries = [
-    this.createSeries(
-      '#FF3B47',
-      [8400, 9200, 8600, 10400, 11200, 10800, 12100, 11800, 13200, 12800, 13600, 14000, 13800, 14206],
-      true,
-    ),
-    this.createSeries(
-      '#5B8DEF',
-      [18000, 17400, 18800, 19600, 20400, 19800, 21200, 22000, 23400, 22800, 24200, 25400, 26800, 27440],
-      true,
-    ),
-    this.createSeries(
-      '#A78BFA',
-      [28000, 28600, 29400, 30200, 31000, 32400, 33800, 34200, 35600, 36400, 37200, 37800, 38100, 38412],
-      false,
-    ),
-  ];
+  private number(value: number | null | undefined): string {
+    return new Intl.NumberFormat('en-GB', { maximumFractionDigits: 0 }).format(
+      value ?? 0,
+    );
+  }
 
-  readonly riskLevels = [
-    { label: 'Self Excluded', value: '48', percent: 12, color: '#FF3B47' },
-    { label: 'High-Risk', value: '27', percent: 7, color: '#FF6478' },
-    { label: 'Monthly Loss', value: '184', percent: 46, color: '#FFB627' },
-    { label: 'At Limit', value: '312', percent: 78, color: '#5B8DEF' },
-    { label: 'Healthy Players', value: '37,841', percent: 94, color: '#2BD4A1' },
-  ];
+  private money(value: number | null | undefined): string {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      maximumFractionDigits: 0,
+    }).format(value ?? 0);
+  }
 
-  readonly matches: MatchRow[] = [
-    { home: 'Arsenal', away: 'Liverpool', series: 'Premier League', time: "LIVE 78'", contests: 84, prize: '£42,800', fill: 92, status: 'live' },
-    { home: 'Chelsea', away: 'Man City', series: 'Premier League', time: '20:00 BST', contests: 62, prize: '£38,200', fill: 78, status: 'open' },
-    { home: 'Real Madrid', away: 'Bayern', series: 'Champions Lge', time: '20:00 CET', contests: 48, prize: '£31,400', fill: 64, status: 'open' },
-    { home: 'Spurs', away: 'Newcastle', series: 'FA Cup', time: 'Tomorrow', contests: 22, prize: '£12,200', fill: 34, status: 'upcoming' },
-  ];
+  private spark(value: number | undefined): number[] {
+    const finalPoint = Math.max(8, Math.min(100, value ?? 0));
+    return [25, 38, 34, 47, 57, 50, 66, 75, 68, 83, 91, 100, 95, finalPoint];
+  }
 
-  readonly balances = [
-    { label: 'Total User Funds', value: '£3.84M', percent: 62, color: '#5B8DEF' },
-    { label: 'Operator Funds', value: '£924K', percent: 18, color: '#FF3B47' },
-    { label: 'Locked / In-play', value: '£412K', percent: 9, color: '#FFB627' },
-    { label: 'Withdrawable', value: '£612K', percent: 11, color: '#2BD4A1' },
-    { label: 'Dormant Funds', value: '£68K', percent: 3, color: '#7A839E' },
-  ];
+  get metrics(): DashboardMetric[] {
+    const users = this.homeData?.users ?? {};
+    const finance = this.homeData?.finance ?? {};
+    const queue = this.homeData?.compliance_queue ?? {};
+    return [
+      {
+        label: 'Active Users (30d)',
+        value: this.number(users.active_30d),
+        change: `${users.active_pct ?? 0}%`,
+        direction: 'up',
+        subtitle: `${this.number(users.total_registered)} registered`,
+        color: 'red',
+        spark: this.spark(users.active_30d),
+      },
+      {
+        label: 'Net Operator Revenue',
+        value: this.money(finance.net_operator_revenue),
+        change: `${this.money(finance.total_costs)} costs`,
+        direction: 'up',
+        subtitle: 'After fees and bonuses',
+        color: 'green',
+        spark: this.spark(finance.net_operator_revenue),
+      },
+      {
+        label: 'Total Deposits',
+        value: this.money(finance.total_deposits),
+        change: `${this.money(finance.total_withdrawals)} withdrawn`,
+        direction: 'up',
+        subtitle: `Withdrawal ratio ${finance.withdrawal_ratio ?? 0}%`,
+        color: 'blue',
+        spark: this.spark(finance.total_deposits),
+      },
+      {
+        label: 'Compliance Queue',
+        value: this.number(queue.total),
+        change: `${this.number(queue.sof_open)} SoF`,
+        direction: 'down',
+        subtitle: `${queue.kyc0_pending ?? 0} KYC0 · ${queue.kyc1_pending ?? 0} KYC1 · ${queue.aml_open ?? 0} AML`,
+        color: 'amber',
+        spark: this.spark(queue.total),
+      },
+    ];
+  }
 
-  readonly approvals = [
-    { icon: '₿', label: 'Withdrawals', count: 24, priority: '3 flagged' },
-    { icon: '✓', label: 'Contest Reviews', count: 8, priority: '' },
-    { icon: '!', label: 'Suspensions', count: 5, priority: '2 escalated' },
-    { icon: '×', label: 'Account Deletion', count: 3, priority: '' },
-    { icon: '◐', label: 'Compliance', count: 1, priority: 'SoF' },
-  ];
+  get chartGrid() {
+    const rows = this.homeData?.activity?.series ?? [];
+    const max = Math.max(
+      0,
+      ...rows.flatMap((row: any) => [row.dau ?? 0, row.wau ?? 0, row.mau ?? 0]),
+    );
+    return [1, 0.75, 0.5, 0.25, 0].map((ratio, index) => ({
+      y: 25 + index * 32,
+      label: this.number(max * ratio),
+    }));
+  }
 
-  private createSeries(color: string, values: number[], fill: boolean) {
+  get activityTotals() {
+    const activity = this.homeData?.activity ?? {};
+    return {
+      dau: activity.dau ?? 0,
+      wau: activity.wau ?? 0,
+      mau: activity.mau ?? 0,
+    };
+  }
+
+  get activitySeries() {
+    const rows = this.homeData?.activity?.series ?? [];
+    if (!rows.length) return [];
+    const max = Math.max(
+      1,
+      ...rows.flatMap((row: any) => [row.dau ?? 0, row.wau ?? 0, row.mau ?? 0]),
+    );
+    return [
+      this.createSeries(
+        '#FF3B47',
+        rows.map((row: any) => Number(row.dau) || 0),
+        true,
+        max,
+      ),
+      this.createSeries(
+        '#5B8DEF',
+        rows.map((row: any) => Number(row.wau) || 0),
+        true,
+        max,
+      ),
+      this.createSeries(
+        '#A78BFA',
+        rows.map((row: any) => Number(row.mau) || 0),
+        false,
+        max,
+      ),
+    ];
+  }
+
+  get activityDates(): string[] {
+    const rows = this.homeData?.activity?.series ?? [];
+    if (!rows.length) return [];
+    return [
+      rows[0].date,
+      rows[Math.floor((rows.length - 1) / 2)].date,
+      rows[rows.length - 1].date,
+    ];
+  }
+
+  get userMix() {
+    return this.homeData?.user_mix ?? [];
+  }
+
+  get rangeLabel(): string {
+    const range = this.homeData?.range;
+    if (!range?.from || !range?.to) return 'Dashboard';
+    const from = new Date(range.from.replace(' ', 'T')).toLocaleDateString(
+      'en-GB',
+    );
+    const to = new Date(range.to.replace(' ', 'T')).toLocaleDateString('en-GB');
+    return `${from} – ${to}`;
+  }
+
+  get mixGradient(): string {
+    const colors = ['#FF3B47', '#A78BFA', '#7A839E'];
+    let edge = 0;
+    const stops = this.userMix.map((item: any, index: number) => {
+      const start = edge;
+      edge += Number(item.pct) || 0;
+      return `${colors[index % colors.length]} ${start}% ${edge}%`;
+    });
+    return `conic-gradient(${stops.join(', ')})`;
+  }
+
+  get riskLevels() {
+    const risk = this.homeData?.rg_pyramid ?? {};
+    const total = Math.max(1, this.homeData?.users?.total_registered ?? 0);
+    return [
+      {
+        label: 'Self Excluded',
+        value: this.number(risk.self_excluded),
+        percent: ((risk.self_excluded ?? 0) / total) * 100,
+        color: '#FF3B47',
+      },
+      {
+        label: 'High-Risk',
+        value: this.number(risk.high_risk),
+        percent: ((risk.high_risk ?? 0) / total) * 100,
+        color: '#FF6478',
+      },
+      {
+        label: 'Monthly Loss',
+        value: this.number(risk.monthly_loss),
+        percent: ((risk.monthly_loss ?? 0) / total) * 100,
+        color: '#FFB627',
+      },
+      {
+        label: 'At Limit',
+        value: this.number(risk.at_limit),
+        percent: ((risk.at_limit ?? 0) / total) * 100,
+        color: '#5B8DEF',
+      },
+      {
+        label: 'Healthy Players',
+        value: this.number(risk.healthy_players),
+        percent: ((risk.healthy_players ?? 0) / total) * 100,
+        color: '#2BD4A1',
+      },
+    ];
+  }
+
+  get matches(): MatchRow[] {
+    return (this.homeData?.live_ops?.matches ?? []).map((match: any) => ({
+      home: match.home ?? match.home_team ?? match.name ?? '—',
+      away: match.away ?? match.away_team ?? '',
+      series: match.series ?? match.competition ?? '—',
+      time: match.time ?? match.starts_at ?? '—',
+      contests: match.contests ?? match.contest_count ?? 0,
+      prize: this.money(match.prize ?? match.prize_pool ?? 0),
+      fill: Math.min(100, match.fill ?? 0),
+      status:
+        match.status === 'live'
+          ? 'live'
+          : match.status === 'open'
+            ? 'open'
+            : 'upcoming',
+    }));
+  }
+
+  get balances() {
+    const wallet = this.homeData?.wallet_monitor ?? {};
+    const total = Math.max(1, Math.abs(wallet.total_user_funds ?? 0));
+    return [
+      {
+        label: 'Total User Funds',
+        value: this.money(wallet.total_user_funds),
+        percent: 100,
+        color: '#5B8DEF',
+      },
+      {
+        label: 'Operator Funds',
+        value: this.money(wallet.operator_funds),
+        percent: Math.min(
+          100,
+          (Math.abs(wallet.operator_funds ?? 0) / total) * 100,
+        ),
+        color: '#FF3B47',
+      },
+      {
+        label: 'Locked / In-play',
+        value: this.money(wallet.locked_total),
+        percent: Math.min(100, ((wallet.locked_total ?? 0) / total) * 100),
+        color: '#FFB627',
+      },
+      {
+        label: 'Withdrawable',
+        value: this.money(wallet.withdrawable),
+        percent: Math.min(100, ((wallet.withdrawable ?? 0) / total) * 100),
+        color: '#2BD4A1',
+      },
+      {
+        label: 'Dormant Funds',
+        value: this.money(wallet.dormant_funds),
+        percent: Math.min(100, ((wallet.dormant_funds ?? 0) / total) * 100),
+        color: '#7A839E',
+      },
+    ];
+  }
+
+  get approvals() {
+    const queue = this.homeData?.approval_queue ?? {};
+    return [
+      {
+        icon: '£',
+        label: 'Withdrawals',
+        count: queue.withdrawals ?? 0,
+        priority: `${queue.withdrawals_held ?? 0} held`,
+      },
+      {
+        icon: '✓',
+        label: 'Contest Reviews',
+        count: queue.contest_reviews ?? 0,
+        priority: '',
+      },
+      {
+        icon: '!',
+        label: 'RG Escalations',
+        count: queue.rg_escalations ?? 0,
+        priority: '',
+      },
+      {
+        icon: '×',
+        label: 'Account Deletion',
+        count: queue.account_deletion ?? 0,
+        priority: '',
+      },
+      {
+        icon: '◉',
+        label: 'Compliance',
+        count: queue.compliance ?? 0,
+        priority: '',
+      },
+    ];
+  }
+
+  get liveSummary(): string {
+    const live = this.homeData?.live_ops ?? {};
+    return `${live.live ?? 0} live · ${live.upcoming ?? 0} upcoming · prize pool ${this.money(live.prize_pool)}`;
+  }
+
+  get netRevenue(): string {
+    return this.money(this.homeData?.finance?.net_operator_revenue);
+  }
+  get costsSummary(): string {
+    const f = this.homeData?.finance ?? {};
+    return `after ${this.money(f.stripe_fees)} Stripe · ${this.money(f.sumsub_costs)} Sumsub · ${this.money(f.bonus_expense)} bonus`;
+  }
+
+  private createSeries(
+    color: string,
+    values: number[],
+    fill: boolean,
+    scale = Math.max(1, ...values),
+  ) {
+    const max = Math.max(1, scale);
     const points = values.map((value, index) => {
-      const x = 38 + (index / (values.length - 1)) * 632;
-      const y = 153 - (value / 40000) * 128;
+      const x =
+        values.length === 1 ? 38 : 38 + (index / (values.length - 1)) * 632;
+      const y = 153 - (value / max) * 128;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     });
-    const path = points.map((point, index) => `${index === 0 ? 'M' : 'L'}${point}`).join(' ');
+    const path = points
+      .map((point, index) => `${index === 0 ? 'M' : 'L'}${point}`)
+      .join(' ');
     const firstX = points[0].split(',')[0];
     const lastX = points[points.length - 1].split(',')[0];
-
     return {
       color,
       fill,

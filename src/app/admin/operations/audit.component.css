@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
   min-width: 0;
   height: 100%;
@@ -63,14 +63,14 @@ header {
 .sessions-panel h2 {
   margin: 0;
   color: #f1f4fb;
-  font-size: 11px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
   font-weight: 650;
 }
 
 .log-heading p {
   margin: 3px 0 0;
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .log-filters {
@@ -87,7 +87,7 @@ header {
   border-radius: 6px;
   color: #b8bfd4;
   background: rgba(255, 255, 255, .04);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .log-filters button.selected {
@@ -105,14 +105,14 @@ header {
 .audit-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .audit-table th {
   padding: 9px 8px;
   color: #7a839e;
   background: rgba(255, 255, 255, .015);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
   letter-spacing: .4px;
   text-align: left;
@@ -132,7 +132,7 @@ header {
 }
 
 .mono {
-  font: 7px "JetBrains Mono", Consolas, monospace;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
   font-variant-numeric: tabular-nums;
 }
 
@@ -157,7 +157,7 @@ header {
   border-radius: 50%;
   color: #fff;
   background: linear-gradient(135deg, #5b8def, #a78bfa);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
 }
 
@@ -171,19 +171,19 @@ header {
 
 .admin-cell strong {
   color: #f1f4fb;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 500;
 }
 
 .admin-cell small,
 .session-row > span:nth-child(2) > small {
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .action-cell {
   min-width: 74px;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 500;
 }
 
@@ -218,7 +218,7 @@ header {
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 99px;
   background: rgba(255, 255, 255, .04);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   white-space: nowrap;
 }
 
@@ -272,7 +272,7 @@ header {
   display: block;
   overflow: hidden;
   color: #f1f4fb;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 550;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -280,11 +280,11 @@ header {
 
 .role-row small {
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .role-row > b {
-  font: 600 9px "JetBrains Mono", Consolas, monospace;
+  font: 600 clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .sessions-panel {
@@ -309,7 +309,7 @@ header {
 .session-row time {
   flex: 0 0 auto;
   color: #7a839e;
-  font: 7px "JetBrains Mono", Consolas, monospace;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .you-label {
@@ -318,7 +318,7 @@ header {
   border-radius: 5px;
   color: #b8bfd4;
   background: rgba(255, 255, 255, .08);
-  font-size: 6px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 @media (max-width: 1050px) {

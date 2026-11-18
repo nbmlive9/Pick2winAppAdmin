@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   grid-area: cost;
   display: flex;
   min-width: 0;
@@ -14,7 +14,7 @@
 h2 {
   margin: 0;
   color: #f1f4fb;
-  font: 600 13px "Space Grotesk", Manrope, sans-serif;
+  font: 600 clamp(12px, calc(11px + 0.4vw), 14px) "Space Grotesk", Manrope, sans-serif;
 }
 
 .provider-card {
@@ -38,7 +38,7 @@ h2 {
   place-items: center;
   border-radius: 6px;
   color: white;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
 }
 
@@ -49,18 +49,18 @@ h2 {
   flex-direction: column;
   gap: 1px;
   color: #f1f4fb;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .provider-name small,
 .provider-details small {
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .provider-total {
   color: #ff7b88;
-  font: 600 14px "Space Grotesk", Manrope, sans-serif;
+  font: 600 clamp(14px, calc(13px + 0.45vw), 17px) "Space Grotesk", Manrope, sans-serif;
 }
 
 .provider-chart {
@@ -94,7 +94,7 @@ h2 {
 
 .provider-details strong {
   color: #f1f4fb;
-  font: 600 8px "JetBrains Mono", monospace;
+  font: 600 clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", monospace;
 }
 
 @media (max-width: 760px) {

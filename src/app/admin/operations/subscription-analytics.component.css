@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
   min-width: 0;
   height: 100%;
@@ -58,7 +58,7 @@ header {
 .cohort-panel h2 {
   margin: 0;
   color: #f1f4fb;
-  font-size: 11px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
   font-weight: 650;
 }
 
@@ -67,7 +67,7 @@ header {
 .cohort-panel > p {
   margin: 3px 0 0;
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .plan-content {
@@ -112,12 +112,12 @@ header {
 }
 
 .donut strong {
-  font: 600 18px "Space Grotesk", Manrope, sans-serif;
+  font: 600 clamp(17px, calc(16px + 0.55vw), 20px) "Space Grotesk", Manrope, sans-serif;
 }
 
 .donut small {
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .plan-list {
@@ -145,7 +145,7 @@ header {
 
 .plan-header h3 {
   margin: 0;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .plan-header h3 small {
@@ -155,18 +155,18 @@ header {
   border-radius: 6px;
   color: #b8bfd4;
   background: rgba(255, 255, 255, .08);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 500;
 }
 
 .plan-header p {
   margin: 2px 0 0;
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .price {
-  font: 600 14px "Space Grotesk", Manrope, sans-serif;
+  font: 600 clamp(14px, calc(13px + 0.45vw), 17px) "Space Grotesk", Manrope, sans-serif;
 }
 
 .plan-stats {
@@ -184,12 +184,12 @@ header {
 
 .plan-stats small {
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   text-transform: uppercase;
 }
 
 .plan-stats strong {
-  font: 600 9px "JetBrains Mono", Consolas, monospace;
+  font: 600 clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .renewal {
@@ -211,7 +211,7 @@ header {
 }
 
 .renewal b {
-  font: 500 8px "JetBrains Mono", Consolas, monospace;
+  font: 500 clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .revenue-panel {
@@ -227,7 +227,7 @@ header {
   display: flex;
   gap: 9px;
   color: #b8bfd4;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .legend span {
@@ -270,7 +270,7 @@ header {
 
 .chart-labels text {
   fill: #7a839e;
-  font: 8px Manrope, sans-serif;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) Manrope, sans-serif;
   text-anchor: middle;
 }
 
@@ -299,7 +299,7 @@ header {
   border-radius: 7px;
   color: #b8bfd4;
   background: rgba(255, 255, 255, .04);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   white-space: nowrap;
 }
 
@@ -318,7 +318,7 @@ header {
 .subscriber-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   white-space: nowrap;
 }
 
@@ -326,7 +326,7 @@ header {
   padding: 8px 8px;
   color: #7a839e;
   background: rgba(255, 255, 255, .015);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   letter-spacing: .4px;
   text-align: left;
   text-transform: uppercase;
@@ -353,7 +353,7 @@ header {
   border-radius: 50%;
   color: white;
   background: linear-gradient(135deg, #5b8def, #a78bfa);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
 }
 
@@ -364,17 +364,17 @@ header {
 }
 
 .subscriber strong {
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 500;
 }
 
 .subscriber small {
   color: #7a839e;
-  font: 7px "JetBrains Mono", Consolas, monospace;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .mono {
-  font: 7px "JetBrains Mono", Consolas, monospace;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .bold {
@@ -392,7 +392,7 @@ header {
   border-radius: 99px;
   color: #ff8c95;
   background: rgba(255, 59, 71, .08);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .plan-chip.long-plan {
@@ -437,7 +437,7 @@ header {
 
 .engagement small {
   color: #7a839e;
-  font: 7px "JetBrains Mono", Consolas, monospace;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .state-chip {
@@ -481,7 +481,7 @@ header {
   min-height: 20px;
   place-items: center;
   color: #7a839e;
-  font: 7px "JetBrains Mono", Consolas, monospace;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .cohort-grid .cohort-month {
@@ -493,7 +493,7 @@ header {
   border: 1px solid rgba(255, 59, 71, .2);
   border-radius: 4px;
   color: #fff;
-  font: 600 7px Manrope, sans-serif;
+  font: 600 clamp(11px, calc(10px + 0.35vw), 13px) Manrope, sans-serif;
 }
 
 .cohort-grid .empty-cell {
@@ -509,7 +509,7 @@ header {
   margin-top: auto;
   padding-top: 10px;
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .cohort-panel footer b {

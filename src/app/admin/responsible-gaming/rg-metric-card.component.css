@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
   min-width: 0;
 }
@@ -21,7 +21,7 @@
 .metric-label {
   padding-right: 50px;
   color: #7a839e;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
   letter-spacing: .45px;
   text-transform: uppercase;
@@ -36,7 +36,7 @@
   color: #74e8c0;
   background: rgba(43, 212, 161, .13);
   font-family: Consolas, monospace;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .metric-change.change-down {
@@ -57,7 +57,7 @@
 .metric-card p {
   margin: 0;
   color: #7a839e;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   line-height: 1.4;
 }
 

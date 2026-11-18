@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
   min-width: 0;
   height: 100%;
@@ -52,7 +52,7 @@ header {
   border-radius: 10px;
   color: white;
   background: linear-gradient(135deg, #ff3b47, #b81e27);
-  font-size: 11px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
   font-weight: 800;
 }
 
@@ -62,7 +62,7 @@ header {
 
 .hero-teams b {
   color: #7a839e;
-  font-size: 15px;
+  font-size: clamp(14px, calc(13px + 0.45vw), 17px);
 }
 
 .hero-match {
@@ -78,12 +78,12 @@ header {
 .hero-match p,
 .hero-stats small {
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .hero-match h2 {
   margin: 4px 0 2px;
-  font: 600 16px "Space Grotesk", Manrope, sans-serif;
+  font: 600 clamp(14px, calc(13px + 0.45vw), 17px) "Space Grotesk", Manrope, sans-serif;
 }
 
 .hero-match p {
@@ -100,7 +100,7 @@ header {
   border-radius: 99px;
   color: #ff8c95;
   background: rgba(255, 59, 71, .08);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .status-chip i {
@@ -128,12 +128,12 @@ header {
 }
 
 .hero-stats small {
-  font-size: 6px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .hero-stats strong {
   margin-top: 3px;
-  font: 600 11px "Space Grotesk", Manrope, sans-serif;
+  font: 600 clamp(12px, calc(11px + 0.4vw), 14px) "Space Grotesk", Manrope, sans-serif;
 }
 
 .red-text {
@@ -175,7 +175,7 @@ header {
 .side-panel h2 {
   margin: 0;
   color: #f1f4fb;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 650;
 }
 
@@ -185,13 +185,13 @@ header {
   border-radius: 99px;
   color: #c7b6fb;
   background: rgba(167, 139, 250, .15);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .release-heading p {
   margin: 3px 0 0;
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .release-heading button {
@@ -203,7 +203,7 @@ header {
   border-radius: 6px;
   color: #e1e5ef;
   background: transparent;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .release-body {
@@ -235,7 +235,7 @@ header {
 .prize-pool small,
 .break-even small {
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .formula strong,
@@ -243,7 +243,7 @@ header {
 .tier-metrics > span {
   margin: 0;
   color: #e1e5ef;
-  font: 7px "JetBrains Mono", Consolas, monospace;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .formula em {
@@ -278,7 +278,7 @@ header {
   border-radius: 99px;
   color: #ff8c95;
   background: #24131b;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .contest-tier-head {
@@ -295,7 +295,7 @@ header {
   place-items: center;
   border-radius: 8px;
   color: white;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
 }
 
@@ -312,12 +312,12 @@ header {
 }
 
 .contest-tier-head strong {
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .contest-tier-head small {
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .prize-pool {
@@ -328,7 +328,7 @@ header {
 }
 
 .prize-pool b {
-  font: 600 13px "Space Grotesk", Manrope, sans-serif;
+  font: 600 clamp(12px, calc(11px + 0.4vw), 14px) "Space Grotesk", Manrope, sans-serif;
 }
 
 .tier-metrics {
@@ -391,13 +391,13 @@ header {
   justify-content: space-between;
   gap: 8px;
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   text-transform: uppercase;
 }
 
 .config-row b {
   color: #f1f4fb;
-  font: 600 8px "JetBrains Mono", Consolas, monospace;
+  font: 600 clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
   white-space: nowrap;
 }
 
@@ -416,7 +416,7 @@ header {
 .config-note {
   margin-top: -7px;
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .forecast-panel > header {
@@ -434,7 +434,7 @@ header {
   border-radius: 99px;
   color: #74e8c0;
   background: rgba(43, 212, 161, .1);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .forecast-grid {
@@ -454,12 +454,12 @@ header {
 
 .forecast-grid small {
   color: #7a839e;
-  font-size: 6px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .forecast-grid strong {
   margin: 3px 0 5px;
-  font: 600 8px "JetBrains Mono", Consolas, monospace;
+  font: 600 clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .forecast-grid i {
@@ -484,7 +484,7 @@ header {
 }
 
 .break-even strong {
-  font: 7px "JetBrains Mono", Consolas, monospace;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .break-even strong b {
@@ -534,7 +534,7 @@ header {
   }
 
   .hero-match h2 {
-    font-size: 13px;
+    font-size: clamp(12px, calc(11px + 0.4vw), 14px);
   }
 
   .hero-stats {

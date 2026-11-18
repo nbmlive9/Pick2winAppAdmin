@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   position: relative;
   display: flex;
   min-width: 0;
@@ -19,7 +19,7 @@
   max-width: 100%;
   padding-right: 36px;
   color: #7a839e;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
   letter-spacing: .06em;
   line-height: 1.35;
@@ -47,7 +47,7 @@
   margin-top: 5px;
   overflow: hidden;
   color: #7a839e;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   line-height: 1.35;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
@@ -62,7 +62,7 @@
   border-radius: 5px;
   color: #74e8c0;
   background: rgba(43, 212, 161, .12);
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
 }
 

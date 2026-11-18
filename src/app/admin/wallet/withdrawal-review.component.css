@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
   min-width: 0;
   min-height: 100%;
@@ -47,14 +47,14 @@
 h2 {
   margin: 0;
   font-family: "Space Grotesk", Manrope, sans-serif;
-  font-size: 12px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
   font-weight: 600;
 }
 
 .queue-heading p {
   margin: 3px 0 0;
   color: #7a839e;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .filter-list {
@@ -77,7 +77,7 @@ h2 {
   border-radius: 7px;
   color: #b8bfd4;
   background: rgba(255, 255, 255, .06);
-  font: 600 9px Manrope, sans-serif;
+  font: 600 clamp(11px, calc(10px + 0.35vw), 13px) Manrope, sans-serif;
   white-space: nowrap;
   cursor: pointer;
 }
@@ -98,7 +98,7 @@ h2 {
   width: 100%;
   min-width: 650px;
   border-collapse: collapse;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   text-align: left;
   white-space: nowrap;
 }
@@ -112,7 +112,7 @@ h2 {
   border-bottom: 1px solid rgba(255, 255, 255, .07);
   color: #7a839e;
   background: #11131d;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
   letter-spacing: .05em;
   text-transform: uppercase;
@@ -166,14 +166,14 @@ h2 {
 .identity small {
   color: #7a839e;
   font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .person-name {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 600;
 }
 
@@ -187,7 +187,7 @@ h2 {
   border-radius: 50%;
   color: #fff;
   background: linear-gradient(135deg, #5b8def, #a78bfa);
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-style: normal;
   font-weight: 700;
 }
@@ -201,18 +201,18 @@ h2 {
   border-radius: 999px;
   color: #ffd27a;
   background: rgba(255, 182, 39, .12);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 600;
 }
 
 .mono {
   font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-variant-numeric: tabular-nums;
 }
 
 .amount-cell {
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
 }
 
@@ -233,7 +233,7 @@ h2 {
   place-items: center;
   border: 1px solid rgba(255, 255, 255, .1);
   border-radius: 3px;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-style: normal;
   font-weight: 700;
 }
@@ -284,7 +284,7 @@ h2 {
 
 .risk-score strong {
   font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .user-summary {
@@ -310,7 +310,7 @@ h2 {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
   font-weight: 600;
 }
 
@@ -319,7 +319,7 @@ h2 {
   height: 34px;
   flex-basis: 34px;
   background: linear-gradient(135deg, #ff3b47, #ffb627);
-  font-size: 12px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
 }
 
 .risk-pill {
@@ -332,7 +332,7 @@ h2 {
   border-radius: 999px;
   color: #ff8c95;
   background: rgba(255, 59, 71, .1);
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .risk-pill i {
@@ -360,7 +360,7 @@ h2 {
 
 .eyebrow {
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
   letter-spacing: .055em;
   text-transform: uppercase;
@@ -368,21 +368,21 @@ h2 {
 
 .withdraw-summary > div:first-child > strong {
   font-family: "Space Grotesk", Manrope, sans-serif;
-  font-size: 22px;
+  font-size: clamp(21px, calc(19px + 0.7vw), 27px);
   letter-spacing: -.03em;
   line-height: 1.15;
 }
 
 .withdraw-summary b {
   overflow: hidden;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   text-overflow: ellipsis;
 }
 
 .withdraw-summary small {
   color: #7a839e;
   font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .detail-content {
@@ -398,7 +398,7 @@ h2 {
 h3 {
   margin: 0 0 6px;
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -434,7 +434,7 @@ h3 {
   border-radius: 50%;
   color: #74e8c0;
   background: rgba(43, 212, 161, .16);
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-style: normal;
   font-weight: 700;
 }
@@ -452,13 +452,13 @@ h3 {
 }
 
 .verification-row strong {
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 600;
 }
 
 .verification-row small {
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   line-height: 1.3;
 }
 
@@ -479,19 +479,19 @@ h3 {
   flex: 0 0 42px;
   color: #7a839e;
   font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .activity-list span {
   min-width: 0;
   flex: 1;
   color: #b8bfd4;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .activity-list b {
   font-family: "JetBrains Mono", Consolas, monospace;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   white-space: nowrap;
 }
 
@@ -506,7 +506,7 @@ h3 {
 .note-label {
   margin: 0;
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
   letter-spacing: .06em;
   text-transform: uppercase;
@@ -525,7 +525,7 @@ h3 {
   outline: 0;
   color: #f1f4fb;
   background: rgba(255, 255, 255, .06);
-  font: 9px Manrope, sans-serif;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) Manrope, sans-serif;
 }
 
 .detail-content textarea::placeholder {
@@ -552,7 +552,7 @@ h3 {
   border-radius: 6px;
   color: #f1f4fb;
   background: transparent;
-  font: 600 8px Manrope, sans-serif;
+  font: 600 clamp(11px, calc(10px + 0.35vw), 13px) Manrope, sans-serif;
   cursor: pointer;
 }
 
@@ -574,7 +574,7 @@ h3 {
   border-bottom: 1px solid rgba(255, 255, 255, .07);
   color: #74e8c0;
   background: rgba(43, 212, 161, .06);
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .empty-state {

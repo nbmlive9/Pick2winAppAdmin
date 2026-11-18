@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   font-family:Inter,Segoe UI,Arial,sans-serif;
   color:#17263b;
   background:#f5f7fb;
@@ -16,22 +16,22 @@ a:focus-visible,button:focus-visible,input:focus-visible {
   outline:3px solid #74a9ff;
   outline-offset:3px}
 h1 {
-  font-size:32px;
+  font-size: clamp(28px, calc(25px + 1vw), 36px);
   letter-spacing:-1px;
   margin:12px 0}
 h2 {
-  font-size:23px;
+  font-size: clamp(21px, calc(19px + 0.7vw), 27px);
   letter-spacing:-.5px}
 .muted,small {
   color:#69778a;
   line-height:1.7}
 .eyebrow {
-  font-size:11px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
   font-weight:700;
   letter-spacing:2px;
   color:#728098}
 .brand {
-  font-size:24px;
+  font-size: clamp(21px, calc(19px + 0.7vw), 27px);
   font-weight:850;
   letter-spacing:-1px;
   color:inherit}
@@ -65,12 +65,12 @@ h2 {
   max-width:420px;
   width:100%}
 .login-card h2 {
-  font-size:29px}
+  font-size: clamp(28px, calc(25px + 1vw), 36px)}
 .login-card form {
   margin:32px 0 20px}
 label {
   display:block;
-  font-size:14px;
+  font-size: clamp(14px, calc(13px + 0.45vw), 17px);
   font-weight:600;
   margin:22px 0 9px}
 input {
@@ -94,7 +94,7 @@ button:disabled {
   cursor:wait}
 .error {
   color:#b42318;
-  font-size:13px}
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px)}
 .admin-shell {
   display:flex;
   min-height:100vh}
@@ -128,7 +128,7 @@ header {
   display:flex;
   justify-content:space-between;
   gap:16px;
-  font-size:14px}
+  font-size: clamp(14px, calc(13px + 0.45vw), 17px)}
 header a {
   color:inherit}
 .badge {
@@ -137,7 +137,7 @@ header a {
   background:#eaf0fe;
   color:#315fa9;
   padding:6px 12px;
-  font-size:12px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
   margin-left:10px}
 .page-content {
   max-width:1200px;
@@ -190,7 +190,7 @@ dd {
   padding:28px;
   gap:28px}
 .login-intro h1 {
-  font-size:34px}
+  font-size: clamp(28px, calc(25px + 1vw), 36px)}
 .login-intro small {
   display:none}
 .login-panel {

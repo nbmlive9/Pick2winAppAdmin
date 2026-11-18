@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
   min-width: 0;
   color: #f1f4fb;
@@ -41,7 +41,7 @@
 .metric-label {
   padding-right: 50px;
   color: #7a839e;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
   letter-spacing: .45px;
   text-transform: uppercase;
@@ -56,7 +56,7 @@
   color: #74e8c0;
   background: rgba(43, 212, 161, .13);
   font-family: Consolas, monospace;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .metric-value {
@@ -72,7 +72,7 @@
 .metric-card p {
   margin: 0;
   color: #7a839e;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   line-height: 1.4;
 }
 
@@ -122,14 +122,14 @@
 .heading-copy h2 {
   margin: 0;
   color: #f1f4fb;
-  font-size: 13px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
   font-weight: 650;
 }
 
 .heading-copy p {
   margin: 3px 0 0;
   color: #7a839e;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   line-height: 1.45;
 }
 
@@ -146,7 +146,7 @@
   color: #d7dced;
   background: rgba(255, 255, 255, .04);
   font-family: inherit;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 600;
   line-height: 1.2;
   text-decoration: none;
@@ -183,7 +183,7 @@
   color: #aeb7cd;
   background: rgba(255, 255, 255, .045);
   font-family: inherit;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
@@ -195,6 +195,25 @@
   background: rgba(255, 59, 71, .1);
 }
 
+.filter-row input[type="search"] {
+  width: 150px;
+  min-width: 110px;
+  min-height: 26px;
+  flex: 0 1 150px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 7px;
+  outline: none;
+  color: #f1f4fb;
+  background: rgba(255, 255, 255, .045);
+  font: inherit;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
+}
+
+.filter-row input[type="search"]:focus-visible {
+  border-color: rgba(91, 141, 239, .65);
+}
+
 .notice {
   grid-column: 1 / -1;
   grid-row: 2;
@@ -202,7 +221,7 @@
   padding: 8px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, .06);
   color: #a9c2ff;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .table-scroll {
@@ -216,7 +235,7 @@
 .user-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   white-space: nowrap;
 }
 
@@ -225,7 +244,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, .08);
   color: #7a839e;
   background: rgba(255, 255, 255, .015);
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
   letter-spacing: .5px;
   text-align: left;
@@ -262,7 +281,7 @@
   border-radius: 50%;
   color: #fff;
   background: linear-gradient(135deg, #a78bfa, #ff3b47);
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
   text-decoration: none;
   vertical-align: middle;
@@ -279,21 +298,21 @@
 }
 
 .user-name strong {
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 600;
 }
 
 .user-name small {
   color: #7a839e;
   font-family: Consolas, monospace;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   line-height: 1.2;
 }
 
 .cell-value {
   color: #c6ccdc;
   font-family: Consolas, "SFMono-Regular", monospace;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-variant-numeric: tabular-nums;
 }
 
@@ -330,7 +349,7 @@
   border-radius: 999px;
   color: #b8bfd4;
   background: rgba(255, 255, 255, .05);
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 600;
 }
 
@@ -395,7 +414,7 @@
 .row-action {
   min-height: 23px;
   padding: 0 8px;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .row-action.tone-negative {
@@ -420,13 +439,13 @@
 
 .empty-state strong {
   color: #dce1ed;
-  font-size: 12px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
 }
 
 .empty-state span {
   margin-top: 5px;
   color: #7a839e;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .table-footer {
@@ -438,7 +457,29 @@
   padding: 9px 14px;
   border-top: 1px solid rgba(255, 255, 255, .07);
   color: #7a839e;
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.pagination-controls button {
+  min-height: 25px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 6px;
+  color: #d7dced;
+  background: rgba(255, 255, 255, .04);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pagination-controls button:disabled {
+  opacity: .45;
+  cursor: default;
 }
 
 @media (max-width: 1100px) {
@@ -508,7 +549,7 @@
 
 @media (max-width: 380px) {
   .metric-value {
-    font-size: 22px;
+    font-size: clamp(21px, calc(19px + 0.7vw), 27px);
   }
 
   .metric-card {

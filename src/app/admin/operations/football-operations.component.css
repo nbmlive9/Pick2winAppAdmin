@@ -1,4 +1,4 @@
-:host {
+﻿:host {
   display: block;
   min-width: 0;
   height: 100%;
@@ -63,7 +63,7 @@ header {
   border-radius: 6px;
   color: #b8bfd4;
   background: rgba(255, 255, 255, .04);
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .filter-chip.active {
@@ -78,7 +78,7 @@ header {
 
 .sort-label {
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .table-scroll {
@@ -90,7 +90,7 @@ header {
 .operations-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   white-space: nowrap;
 }
 
@@ -98,7 +98,7 @@ header {
   padding: 9px 8px;
   color: #7a839e;
   background: rgba(255, 255, 255, .015);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
   letter-spacing: .45px;
   text-align: left;
@@ -127,13 +127,13 @@ header {
 }
 
 .series-name strong {
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 600;
 }
 
 .series-name small {
   color: #7a839e;
-  font: 7px "JetBrains Mono", Consolas, monospace;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .series-icon {
@@ -143,7 +143,7 @@ header {
   flex: 0 0 27px;
   place-items: center;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
 }
 
 .sport-chip,
@@ -156,7 +156,7 @@ header {
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 99px;
   background: rgba(255, 255, 255, .04);
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .status-chip {
@@ -199,7 +199,7 @@ header {
 .sport-green { color: #74e8c0; border-color: rgba(43, 212, 161, .3); background: rgba(43, 212, 161, .1); }
 
 .mono {
-  font: 7px "JetBrains Mono", Consolas, monospace;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
   font-variant-numeric: tabular-nums;
 }
 
@@ -215,7 +215,7 @@ header {
   border: 1px solid rgba(255, 255, 255, .08);
   border-radius: 6px;
   color: #e1e5ef;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .fixture {
@@ -239,12 +239,12 @@ header {
   place-items: center;
   border-radius: 4px;
   color: #fff;
-  font: 700 6px Manrope, sans-serif;
+  font: 700 clamp(11px, calc(10px + 0.35vw), 13px) Manrope, sans-serif;
   font-style: normal;
 }
 
 .team b {
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 550;
 }
 
@@ -252,7 +252,7 @@ header {
   padding: 3px 6px;
   border-radius: 5px;
   background: rgba(255, 255, 255, .06);
-  font: 600 8px "JetBrains Mono", Consolas, monospace;
+  font: 600 clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .live-score {
@@ -291,7 +291,7 @@ header {
 .release-heading h2 {
   margin: 0;
   color: #f1f4fb;
-  font-size: 10px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 650;
 }
 
@@ -300,7 +300,7 @@ header {
 .release-heading p {
   margin: 3px 0 0;
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .form-row {
@@ -317,7 +317,7 @@ header {
   gap: 4px;
   margin: 0;
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 650;
   letter-spacing: .35px;
   text-transform: uppercase;
@@ -336,7 +336,7 @@ header {
   outline: 0;
   color: #e1e5ef;
   background: rgba(255, 255, 255, .055);
-  font: 8px Manrope, sans-serif;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) Manrope, sans-serif;
   letter-spacing: normal;
   text-transform: none;
 }
@@ -375,13 +375,13 @@ header {
 
 .toggle-card strong {
   color: #e1e5ef;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 500;
 }
 
 .toggle-card small {
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   line-height: 1.3;
 }
 
@@ -435,7 +435,7 @@ header {
 
 .versus {
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-weight: 700;
 }
 
@@ -447,7 +447,7 @@ header {
 .eyebrow {
   margin: 0;
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   letter-spacing: 1px;
 }
 
@@ -472,7 +472,7 @@ header {
   place-items: center;
   border-radius: 8px;
   background: linear-gradient(135deg, #5b8def, #5b8def88);
-  font-size: 16px;
+  font-size: clamp(14px, calc(13px + 0.45vw), 17px);
 }
 
 .preview-main > span:last-child,
@@ -481,13 +481,13 @@ header {
 }
 
 .preview-main strong {
-  font-size: 9px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .preview-main small,
 .fixture-preview > small {
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .preview-chips {
@@ -502,7 +502,7 @@ header {
   border: 1px solid rgba(255, 255, 255, .1);
   border-radius: 99px;
   color: #b8bfd4;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .green-text { color: #74e8c0 !important; }
@@ -515,7 +515,7 @@ header {
   align-items: center;
   gap: 7px;
   color: #7a839e;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .check-row i {
@@ -526,7 +526,7 @@ header {
   place-items: center;
   border: 1px solid rgba(255, 255, 255, .12);
   border-radius: 4px;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-style: normal;
 }
 
@@ -551,13 +551,13 @@ header {
   border-radius: 6px;
   color: #b8bfd4;
   background: rgba(255, 255, 255, .05);
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .stat-row strong,
 .config-row b {
   color: #f1f4fb;
-  font: 600 8px "JetBrains Mono", Consolas, monospace;
+  font: 600 clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
   white-space: nowrap;
 }
 
@@ -595,24 +595,24 @@ header {
 }
 
 .fixture-preview-teams b {
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .fixture-preview-teams em {
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   font-style: normal;
 }
 
 .fixture-preview-teams > strong {
   color: #b8bfd4;
-  font-size: 13px;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
 }
 
 .fixture-preview p {
   margin: 9px 0 0;
   color: #b8bfd4;
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   text-align: center;
 }
 
@@ -645,7 +645,7 @@ header {
   border-radius: 4px;
   color: #fff;
   background: #a78bfa;
-  font-size: 6px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .tier-preview-grid article > strong,
@@ -654,19 +654,19 @@ header {
 }
 
 .tier-preview-grid article > strong {
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .tier-preview-grid article > small {
   display: flex;
   justify-content: space-between;
   color: #7a839e;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
 .tier-preview-grid article > small b {
   color: #e1e5ef;
-  font: 7px "JetBrains Mono", Consolas, monospace;
+  font: clamp(11px, calc(10px + 0.35vw), 13px) "JetBrains Mono", Consolas, monospace;
 }
 
 .tier-dot {
@@ -688,7 +688,7 @@ header {
   border-radius: 7px;
   color: #b8bfd4;
   background: rgba(255, 255, 255, .05);
-  font-size: 8px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   line-height: 1.4;
 }
 
@@ -727,7 +727,7 @@ header {
   flex: 1;
   margin: 0;
   color: #b8bfd4;
-  font-size: 7px;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
   line-height: 1.4;
 }
 
@@ -829,7 +829,7 @@ header {
   }
 
   .hero-match h2 {
-    font-size: 13px;
+    font-size: clamp(12px, calc(11px + 0.4vw), 14px);
   }
 
   .tier-preview-grid {
