@@ -16,10 +16,15 @@
           [attr.aria-pressed]="activeFilter === filter.key" (click)="setFilter(filter.key)">
           {{ filter.label }}
         </button>
+        <input *ngIf="isDepositLimitsView || isSelfExclusionView" type="search" class="rg-search"
+          [attr.aria-label]="isSelfExclusionView ? 'Search self-exclusions' : 'Search deposit limits'"
+          [placeholder]="isSelfExclusionView ? 'Search excluded users' : 'Search users or limits'"
+          [value]="searchTerm" (input)="setSearchTerm($any($event.target).value)" />
       </div>
     </header>
 
     <p class="notice" role="status" *ngIf="notice">{{ notice }}</p>
+    <p class="notice" role="alert" *ngIf="errorNotice">{{ errorNotice }}</p>
 
     <div class="table-scroll">
       <table class="rg-table">
@@ -30,6 +35,11 @@
           </tr>
         </thead>
         <tbody>
+          <tr *ngIf="loading">
+            <td class="empty-state" [attr.colspan]="page.columns.length + 1">
+              {{ isLimitChangesView ? 'Loading limit-change records…' : isMonthlyLossView ? 'Loading monthly-loss users…' : isSelfExclusionView ? 'Loading self-exclusion records…' : isAlertsView ? 'Loading responsible-gaming alerts…' : 'Loading deposit-limit records…' }}
+            </td>
+          </tr>
           <tr *ngFor="let row of filteredRows" [class.highlight-row]="row.highlight">
             <td class="user-cell">
               <span class="user-avatar" [class.redacted-avatar]="row.name.startsWith('[')">
@@ -50,14 +60,22 @@
                 [ngClass]="'tone-' + (cell.tone || 'default')">{{ cell.value }}</span>
             </td>
           </tr>
-          <tr *ngIf="filteredRows.length === 0">
+          <tr *ngIf="!loading && filteredRows.length === 0">
             <td class="empty-state" [attr.colspan]="page.columns.length + 1">
-              <strong>No matching records</strong>
-              <span>Try another filter or search term.</span>
+              <strong>{{ errorNotice ? (isLimitChangesView ? 'Limit changes are unavailable' : isMonthlyLossView ? 'Monthly-loss data is unavailable' : isSelfExclusionView ? 'Self-exclusion data is unavailable' : isAlertsView ? 'RG alerts are unavailable' : 'Deposit limits are unavailable') : 'No matching records' }}</strong>
+              <span *ngIf="!errorNotice">Try another filter or search term.</span>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+    <footer class="rg-pagination" *ngIf="(isDepositLimitsView || isLimitChangesView || isMonthlyLossView || isSelfExclusionView || isAlertsView) && pagination">
+      <span>{{ pageRangeLabel }}</span>
+      <div>
+        <button type="button" class="page-button" (click)="previousPage()" [disabled]="pagination.page <= 1">Previous</button>
+        <span>Page {{ pagination.page }} of {{ pagination.totalPages }}</span>
+        <button type="button" class="page-button" (click)="nextPage()" [disabled]="pagination.page >= pagination.totalPages">Next</button>
+      </div>
+    </footer>
   </section>
 </div>

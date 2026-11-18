@@ -1,4 +1,6 @@
-import { Component } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, OnInit } from '@angular/core';
+import { AdminService } from 'src/app/core/services/admin.service';
 import { RgMetric, rgMetric } from './rg.models';
 
 interface WatchRow {
@@ -26,28 +28,40 @@ interface AlertItem {
   templateUrl: './rg-monitor.component.html',
   styleUrls: ['./rg-monitor.component.css'],
 })
-export class RgMonitorComponent {
+export class RgMonitorComponent implements OnInit {
   readonly primaryAction = 'RG Policy v1.4';
   readonly secondaryAction = 'Run Monthly Audit';
-  readonly metrics: RgMetric[] = [
-    rgMetric('Users at Limit', '312', '76% Other · 24% Student', '#5b8def', [180, 184, 192, 202, 210, 224, 236, 248, 256, 268, 278, 288, 298, 312], '2.4%'),
-    rgMetric('Monthly Loss Users', '184', '42 consecutive 2 mo', '#ffb627', [120, 124, 128, 132, 140, 148, 156, 162, 168, 172, 176, 180, 182, 184], '6.1%'),
-    rgMetric('High-Risk Users', '27', '11 escalated to compliance', '#ff3b47', [12, 14, 13, 16, 18, 15, 18, 20, 22, 21, 24, 23, 26, 27], '14%'),
-    rgMetric('Self Excluded', '48', '22 active · 26 expired', '#a78bfa', [42, 44, 43, 45, 46, 46, 47, 47, 48, 48, 47, 48, 48, 48], '0.8%', 'down'),
-  ];
-
-  readonly lossSteps = [
-    { count: '428', label: 'No action', number: '1', color: '#5b8def' },
-    { count: '142', label: 'RG reminder', number: '2', color: '#a78bfa' },
-    { count: '32', label: 'Suggest lower limit', number: '3', color: '#ffb627' },
-    { count: '9', label: 'Compliance review', number: '4', color: '#ff6478' },
-    { count: '2', label: 'Mandatory exclusion', number: '5+', color: '#ff3b47' },
-  ];
-
-  readonly limitTiers = [
-    { label: 'Student Users', note: 'Default · capped · 12,420', amount: '£500', usage: 64, color: '#a78bfa' },
-    { label: 'Other Users', note: 'Default · standard · 35,786', amount: '£1,500', usage: 48, color: '#5b8def' },
-  ];
+  metrics: RgMetric[] = [];
+  lossSteps: { count: string; label: string; number: string; color: string }[] = [];
+  limitTiers: {
+    label: string;
+    note: string;
+    amount: string;
+    usage: number;
+    color: string;
+  }[] = [];
+  watchRows: WatchRow[] = [];
+  highRiskSummary = { minScore: 70, total: 0 };
+  highRiskPagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  } | null = null;
+  highRiskLoading = true;
+  highRiskNotice = '';
+  alerts: AlertItem[] = [];
+  limitReduction: any = null;
+  limitPolicy: any = null;
+  usersAtLimit = 0;
+  highRiskUsers = 0;
+  alertsToday = 0;
+  loading = true;
+  notice = '';
+  overviewError = '';
+  activeFilter = 'all';
+  searchTerm = '';
+  private highRiskLoadSequence = 0;
 
   readonly watchFilters = [
     { label: 'All Risk', key: 'all' },
@@ -57,34 +71,272 @@ export class RgMonitorComponent {
     { label: 'Self-Excl', key: 'self-excl' },
   ];
 
-  readonly watchRows: WatchRow[] = [
-    { name: 'Hannah Wells', id: 'UK-48211', tier: 'Student', usage: '£500 / £500', usagePercent: 100, streak: '5 mo', loss: '−£2,400', triggers: ['5 mo loss', 'at limit', '+1'], risk: 94, action: 'Suspend', filters: ['loss', 'at-limit'] },
-    { name: 'Karl Vincent', id: 'UK-48109', tier: 'Other', usage: '£1,500 / £1,500', usagePercent: 100, streak: '4 mo', loss: '−£5,200', triggers: ['4 mo loss', 'at limit'], risk: 88, action: 'Review', filters: ['loss', 'at-limit'] },
-    { name: 'Sophie Lin', id: 'UK-47998', tier: 'Student', usage: '£500 / £500', usagePercent: 100, streak: '3 mo', loss: '−£1,500', triggers: ['3 mo loss', 'velocity'], risk: 82, action: 'Review', filters: ['loss', 'at-limit', 'velocity'] },
-    { name: 'Marcus Reed', id: 'UK-47821', tier: 'Other', usage: '£1,380 / £1,500', usagePercent: 92, streak: '4 mo', loss: '−£3,800', triggers: ['4 mo loss', 'limit reduce 1x'], risk: 79, action: 'Review', filters: ['loss'] },
-    { name: 'Tara Goldsmith', id: 'UK-47720', tier: 'Student', usage: '£500 / £500', usagePercent: 100, streak: '2 mo', loss: '−£1,000', triggers: ['2 mo loss', 'at limit'], risk: 72, action: 'Review', filters: ['loss', 'at-limit'] },
-    { name: 'Jonas Reid', id: 'UK-48402', tier: 'Other', usage: '£1,240 / £1,500', usagePercent: 83, streak: '2 mo', loss: '−£1,200', triggers: ['2 mo loss', 'RG warning'], risk: 68, action: 'Review', filters: ['loss'] },
-  ];
+  constructor(private admin: AdminService) {}
 
-  readonly alerts: AlertItem[] = [
-    { severity: 'high', time: '2m ago', message: 'Hannah Wells reached monthly limit — 5th consecutive loss month' },
-    { severity: 'high', time: '14m ago', message: 'Karl Vincent attempted limit increase — auto-blocked, escalated' },
-    { severity: 'medium', time: '38m ago', message: 'Sophie Lin late-night velocity 4× weekly avg' },
-    { severity: 'medium', time: '1h ago', message: 'Marcus Reed used one-time limit reduction option' },
-    { severity: 'low', time: '2h ago', message: 'Tara Goldsmith → 2 consecutive loss months · reminder sent' },
-    { severity: 'low', time: '3h ago', message: '9 users acknowledged RG policy v1.4' },
-  ];
+  ngOnInit(): void {
+    this.loadOverview();
+    this.loadHighRiskUsers(1);
+  }
 
-  activeFilter = 'all';
-  searchTerm = '';
-  notice = '';
+  loadOverview(): void {
+    this.loading = true;
+    this.overviewError = '';
+    this.admin.getRgOverview().subscribe({
+      next: (response: any) => {
+        this.loading = false;
+        const data = response?.data;
+        if (!data || typeof data !== 'object') {
+          this.showFailure('The Responsible Gaming overview response was not in the expected format.');
+          return;
+        }
+
+        const kpis = data.kpis ?? {};
+        const number = (value: unknown) => Number(value) || 0;
+        this.usersAtLimit = number(kpis.users_at_limit);
+        const studentAtLimit = number(kpis.at_limit_students);
+        const otherAtLimit = Math.max(0, this.usersAtLimit - studentAtLimit);
+        const lossUsers = number(kpis.monthly_loss_users);
+        const consecutive = number(kpis.consecutive_2plus);
+        const highRisk = number(kpis.high_risk_users);
+        this.highRiskUsers = highRisk;
+        const excludedActive = number(kpis.self_excluded_active);
+        const excludedExpired = number(kpis.self_excluded_expired);
+
+        this.metrics = [
+          this.makeMetric(
+            'Users at Limit',
+            this.usersAtLimit,
+            `${otherAtLimit} other · ${studentAtLimit} students`,
+            '#5b8def',
+          ),
+          this.makeMetric(
+            'Monthly Loss Users',
+            lossUsers,
+            `${consecutive} with 2+ consecutive months`,
+            '#ffb627',
+          ),
+          this.makeMetric(
+            'High-Risk Users',
+            highRisk,
+            'Users currently flagged as high risk',
+            '#ff3b47',
+          ),
+          this.makeMetric(
+            'Self Excluded',
+            excludedActive + excludedExpired,
+            `${excludedActive} active · ${excludedExpired} expired`,
+            '#a78bfa',
+          ),
+        ];
+
+        const stepColors = ['#5b8def', '#a78bfa', '#ffb627', '#ff6478', '#ff3b47'];
+        this.lossSteps = (Array.isArray(data.loss_ladder) ? data.loss_ladder : []).map(
+          (step: any, index: number) => ({
+            count: this.formatNumber(step.users),
+            label: String(step.action ?? 'No action'),
+            number: String(step.months ?? index + 1),
+            color: stepColors[index % stepColors.length],
+          }),
+        );
+
+        this.limitReduction = data.limit_reduction ?? {};
+        this.limitPolicy = this.limitReduction.policy ?? {};
+        const tierColors = ['#a78bfa', '#5b8def', '#2bd4a1', '#ffb627'];
+        this.limitTiers = (Array.isArray(data.limit_tiers) ? data.limit_tiers : []).map(
+          (tier: any, index: number) => ({
+            label: String(tier.label ?? 'User tier'),
+            note: `Default · ${this.formatNumber(tier.users)} users`,
+            amount: this.formatMoney(tier.default_limit),
+            usage: this.clampPercent(tier.avg_usage_pct),
+            color: tierColors[index % tierColors.length],
+          }),
+        );
+
+        this.alertsToday = number(data.alerts?.today);
+        this.alerts = (Array.isArray(data.alerts?.recent) ? data.alerts.recent : []).map(
+          (alert: any): AlertItem => ({
+            severity: this.alertSeverity(alert.severity ?? alert.level),
+            time: this.alertTime(alert.time ?? alert.created_at ?? alert.timestamp),
+            message: String(alert.message ?? alert.title ?? 'Responsible Gaming alert'),
+          }),
+        );
+      },
+      error: (error: HttpErrorResponse) => {
+        this.loading = false;
+        const detail =
+          typeof error.error?.message === 'string'
+            ? error.error.message
+            : error.status === 0
+              ? 'The API could not be reached (network or CORS error).'
+              : `HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`;
+        this.showFailure(`Could not load Responsible Gaming overview: ${detail}`);
+      },
+    });
+  }
+
+  loadHighRiskUsers(page = 1): void {
+    this.highRiskLoading = true;
+    this.highRiskNotice = '';
+    const requestSequence = ++this.highRiskLoadSequence;
+    this.admin.getHighRiskUsers(page, 20).subscribe({
+      next: (response: any) => {
+        if (requestSequence !== this.highRiskLoadSequence) return;
+        this.highRiskLoading = false;
+        if (!Array.isArray(response?.data)) {
+          this.showHighRiskFailure(
+            'The high-risk users response was not in the expected format.',
+          );
+          return;
+        }
+
+        const summary = response.summary ?? {};
+        this.highRiskSummary = {
+          minScore: Number(summary.min_score) || 70,
+          total: Number(summary.total ?? response.pagination?.total) || 0,
+        };
+        this.watchRows = response.data.map((item: any): WatchRow => {
+          const usedValue = item.used_this_month ?? item.used_month;
+          const limitValue = item.deposit_limit ?? item.monthly_limit ?? item.default_cap;
+          const rawUsage = item.limit_usage_pct ?? item.usage_pct ?? item.avg_usage_pct;
+          const usagePercent = this.clampPercent(
+            rawUsage ?? (Number(limitValue) > 0
+              ? (Number(usedValue) / Number(limitValue)) * 100
+              : 0),
+          );
+          const triggers = Array.isArray(item.triggers)
+            ? item.triggers.map((trigger: unknown) => String(trigger))
+            : [];
+          const triggerText = triggers.join(' ').toLowerCase();
+          const lossStreak = item.loss_streak ?? item.loss_months_12m ?? 0;
+          const filters = [
+            ...(Number(lossStreak) > 0 || triggerText.includes('loss') ? ['loss'] : []),
+            ...(Boolean(item.at_limit) || usagePercent >= 100 || triggerText.includes('limit')
+              ? ['at-limit']
+              : []),
+            ...(triggerText.includes('velocity') ? ['velocity'] : []),
+            ...(Boolean(item.self_excluded) || triggerText.includes('self-excl')
+              ? ['self-excl']
+              : []),
+          ];
+          const usage = usedValue !== undefined && limitValue !== undefined
+            ? `${this.formatMoney(usedValue)} / ${this.formatMoney(limitValue)}`
+            : `${usagePercent}%`;
+          return {
+            name: String(item.name ?? 'Unknown user'),
+            id: String(item.usercode ?? item.user_id ?? item.id ?? '—'),
+            tier: String(item.tier ?? 'Other'),
+            usage,
+            usagePercent,
+            streak: typeof lossStreak === 'string'
+              ? lossStreak
+              : `${this.formatNumber(lossStreak)} mo`,
+            loss: this.formatMoney(item.net_loss_12m ?? item.net_loss ?? 0),
+            triggers,
+            risk: this.clampPercent(item.risk_score),
+            action: String(item.action ?? 'Review'),
+            filters,
+          };
+        });
+        const pagination = response.pagination ?? {};
+        this.highRiskPagination = {
+          total: Number(pagination.total ?? this.highRiskSummary.total) || 0,
+          page: Number(pagination.page) || page,
+          limit: Number(pagination.limit) || 20,
+          totalPages: Math.max(0, Number(pagination.totalPages) || 0),
+        };
+      },
+      error: (error: HttpErrorResponse) => {
+        if (requestSequence !== this.highRiskLoadSequence) return;
+        const detail =
+          typeof error.error?.message === 'string'
+            ? error.error.message
+            : error.status === 0
+              ? 'The API could not be reached (network or CORS error).'
+              : `HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`;
+        this.showHighRiskFailure(`Could not load high-risk users: ${detail}`);
+      },
+    });
+  }
+
+  private showHighRiskFailure(message: string): void {
+    this.highRiskLoading = false;
+    this.highRiskNotice = message;
+    this.watchRows = [];
+    this.highRiskPagination = null;
+  }
+
+  previousHighRiskPage(): void {
+    if (this.highRiskPagination && this.highRiskPagination.page > 1)
+      this.loadHighRiskUsers(this.highRiskPagination.page - 1);
+  }
+
+  nextHighRiskPage(): void {
+    if (
+      this.highRiskPagination &&
+      this.highRiskPagination.page < this.highRiskPagination.totalPages
+    )
+      this.loadHighRiskUsers(this.highRiskPagination.page + 1);
+  }
+
+  private makeMetric(label: string, value: number, detail: string, color: string): RgMetric {
+    return rgMetric(label, this.formatNumber(value), detail, color, [value, value]);
+  }
+
+  private showFailure(message: string): void {
+    this.loading = false;
+    this.overviewError = message;
+    this.metrics = [];
+    this.lossSteps = [];
+    this.limitTiers = [];
+    this.alerts = [];
+    this.usersAtLimit = 0;
+    this.highRiskUsers = 0;
+  }
+
+  private alertSeverity(value: unknown): AlertItem['severity'] {
+    const severity = String(value ?? 'low').toLowerCase();
+    return severity === 'high' || severity === 'medium' ? severity : 'low';
+  }
+
+  private alertTime(value: unknown): string {
+    if (value === null || value === undefined || value === '') return '—';
+    const parsed = new Date(String(value));
+    return Number.isNaN(parsed.getTime())
+      ? String(value)
+      : parsed.toLocaleString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+  }
+
+  formatNumber(value: unknown): string {
+    return new Intl.NumberFormat('en-GB').format(Number(value) || 0);
+  }
+
+  formatMoney(value: unknown): string {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      maximumFractionDigits: 2,
+    }).format(Number(value) || 0);
+  }
+
+  clampPercent(value: unknown): number {
+    return Math.max(0, Math.min(100, Number(value) || 0));
+  }
 
   get filteredWatchRows(): WatchRow[] {
     const query = this.searchTerm.trim().toLowerCase();
-    return this.watchRows.filter(row => {
-      const filterMatch = this.activeFilter === 'all' || row.filters.includes(this.activeFilter);
-      const queryMatch = !query || `${row.name} ${row.id} ${row.tier} ${row.triggers.join(' ')}`
-        .toLowerCase().includes(query);
+    return this.watchRows.filter((row) => {
+      const filterMatch =
+        this.activeFilter === 'all' || row.filters.includes(this.activeFilter);
+      const queryMatch =
+        !query ||
+        `${row.name} ${row.id} ${row.tier} ${row.triggers.join(' ')}`
+          .toLowerCase()
+          .includes(query);
       return filterMatch && queryMatch;
     });
   }
@@ -110,6 +362,6 @@ export class RgMonitorComponent {
   }
 
   getInitials(name: string): string {
-    return name.split(' ').map(part => part[0]).join('').slice(0, 2);
+    return name.split(' ').map((part) => part[0]).join('').slice(0, 2);
   }
 }

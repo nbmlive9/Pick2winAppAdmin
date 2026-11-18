@@ -25,7 +25,7 @@
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .08);
   border-radius: 13px;
@@ -104,6 +104,24 @@
   border-color: rgba(167, 139, 250, .4);
   color: #c4b5fd;
   background: rgba(167, 139, 250, .15);
+}
+
+.rg-search {
+  width: 170px;
+  min-width: 125px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 7px;
+  outline: none;
+  color: #f1f4fb;
+  background: rgba(255, 255, 255, .045);
+  font: inherit;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
+}
+
+.rg-search:focus-visible {
+  border-color: rgba(91, 141, 239, .65);
 }
 
 .notice {
@@ -323,6 +341,40 @@
 .empty-state strong,
 .empty-state span {
   display: block;
+}
+
+.rg-pagination {
+  grid-row: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(255, 255, 255, .07);
+  color: #aeb7cd;
+  font-size: clamp(11px, calc(10px + 0.35vw), 13px);
+}
+
+.rg-pagination > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.page-button {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 6px;
+  color: #d7dced;
+  background: rgba(255, 255, 255, .04);
+  font: inherit;
+  cursor: pointer;
+}
+
+.page-button:disabled {
+  opacity: .45;
+  cursor: default;
 }
 
 .empty-state strong {

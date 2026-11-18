@@ -1,8 +1,9 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
+import { AdminService } from 'src/app/core/services/admin.service';
 import { asapScheduler, Subscription } from 'rxjs';
 import { observeOn } from 'rxjs/operators';
-import { RgRecordsPage } from './rg.models';
+import { RgMetric, RgRecordsPage, RgRow, RgTone, rgMetric } from './rg.models';
 import { rgRecordsPages, RgRecordsView } from './rg-records.data';
 
 @Component({
@@ -15,10 +16,30 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
   activeFilter = 'all';
   searchTerm = '';
   notice = '';
+  isDepositLimitsView = false;
+  isLimitChangesView = false;
+  isMonthlyLossView = false;
+  isSelfExclusionView = false;
+  isAlertsView = false;
+  loading = false;
+  errorNotice = '';
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  } | null = null;
   private routeData?: Subscription;
+  private requestSequence = 0;
 
-  constructor(private route: ActivatedRoute) {
-    this.setPage(this.route.snapshot.data['view'] as RgRecordsView | undefined);
+  constructor(
+    private route: ActivatedRoute,
+    private admin: AdminService,
+  ) {
+    this.setPage(
+      this.route.snapshot.data['view'] as RgRecordsView | undefined,
+      false,
+    );
   }
 
   get filteredRows() {
@@ -35,18 +56,665 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
       .subscribe(data => this.setPage(data['view'] as RgRecordsView | undefined));
   }
 
-  private setPage(view: RgRecordsView | undefined): void {
+  private setPage(view: RgRecordsView | undefined, load = true): void {
     if (!view) {
       return;
     }
 
+    this.requestSequence++;
+    this.loading = false;
+    this.errorNotice = '';
+    this.pagination = null;
+    this.isDepositLimitsView = view === 'deposit-limits';
+    this.isLimitChangesView = view === 'limit-reductions';
+    this.isMonthlyLossView = view === 'monthly-loss';
+    this.isSelfExclusionView = view === 'self-exclusion';
+    this.isAlertsView = view === 'alerts';
     this.page = rgRecordsPages[view];
     this.activeFilter = 'all';
+    this.searchTerm = '';
     this.notice = '';
+    if (this.isDepositLimitsView) {
+      this.setDepositLimitsLoadingPage();
+      if (load) this.loadDepositLimits(1);
+    } else if (this.isLimitChangesView) {
+      this.setLimitChangesLoadingPage();
+      if (load) this.loadLimitChanges(1);
+    } else if (this.isMonthlyLossView) {
+      this.setDynamicLoadingPage('monthly-loss', 'Loading monthly-loss users…');
+      if (load) this.loadMonthlyLossUsers(1);
+    } else if (this.isSelfExclusionView) {
+      this.setDynamicLoadingPage('self-exclusion', 'Loading self-exclusion records…');
+      if (load) this.loadSelfExclusions(1);
+    } else if (this.isAlertsView) {
+      this.setDynamicLoadingPage('alerts', 'Loading responsible-gaming alerts…');
+      if (load) this.loadRgAlerts(1);
+    }
+  }
+
+  private setDynamicLoadingPage(view: 'monthly-loss' | 'self-exclusion' | 'alerts', description: string): void {
+    this.page = {
+      ...rgRecordsPages[view],
+      description,
+      rows: [],
+      metrics: rgRecordsPages[view].metrics.map(item => ({
+        ...item, value: '—', detail: 'Loading…', sparkline: '',
+      })),
+    };
+  }
+
+  private loadMonthlyLossUsers(pageNumber: number): void {
+    this.loading = true;
+    this.errorNotice = '';
+    const sequence = ++this.requestSequence;
+    this.admin.getMonthlyLossUsers(pageNumber, 20).subscribe({
+      next: (response: any) => {
+        if (sequence !== this.requestSequence) return;
+        this.loading = false;
+        if (!Array.isArray(response?.data)) {
+          this.showDynamicFailure('monthly-loss', 'The monthly-loss response was not in the expected format.');
+          return;
+        }
+        const summary = response.summary ?? {};
+        const paging = response.pagination ?? {};
+        const formatNumber = (value: unknown) => new Intl.NumberFormat('en-GB').format(Number(value) || 0);
+        const formatMoney = (value: unknown) => new Intl.NumberFormat('en-GB', {
+          style: 'currency', currency: 'GBP', maximumFractionDigits: 2,
+        }).format(Number(value) || 0);
+        const makeMetric = (label: string, value: string, detail: string, color: string, numeric = 0): RgMetric =>
+          rgMetric(label, value, detail, color, [numeric, numeric]);
+        const total = Number(paging.total) || 0;
+        this.page = {
+          ...rgRecordsPages['monthly-loss'],
+          description: String(summary.loss_ratio_rule ?? 'Monthly loss users and intervention status'),
+          metrics: [
+            makeMetric('Monthly Loss Users', formatNumber(summary.monthly_loss_users), 'Users meeting the loss rule', '#ff3b47', Number(summary.monthly_loss_users) || 0),
+            makeMetric('Consecutive Loss Months', formatNumber(summary.streak_3plus), 'Users with a 3+ month loss streak', '#ffb627', Number(summary.streak_3plus) || 0),
+            makeMetric('Net Loss This Month', formatMoney(summary.net_loss_this_month), 'Across flagged users', '#ff3b47', Number(summary.net_loss_this_month) || 0),
+            makeMetric('RG Interventions Sent', formatNumber(summary.interventions_sent), `${formatNumber(summary.intervention_coverage)}% coverage`, '#a78bfa', Number(summary.interventions_sent) || 0),
+          ],
+          rows: response.data.map((item: any): RgRow => {
+            const streak = Number(item.loss_streak_months ?? item.loss_streak ?? item.consecutive_loss_months ?? 0);
+            const tier = String(item.tier ?? 'Unknown');
+            const loss = item.net_loss ?? item.net_loss_this_month ?? item.monthly_net_loss ?? item.loss_amount;
+            const limitSet = item.limit_set ?? item.has_limit ?? item.deposit_limit_set;
+            const hasLimit = limitSet === true || String(limitSet ?? '').toLowerCase() === 'set';
+            const intervention = item.intervention_sent ?? item.intervention_status ?? item.rg_sent;
+            const sent = intervention === true || String(intervention ?? '').toLowerCase() === 'sent';
+            const lastAction = item.last_action ?? item.last_intervention_at ?? item.last_action_at;
+            const status = String(item.status ?? (sent ? 'Monitored' : 'Review'));
+            return {
+              name: String(item.name ?? item.user_name ?? 'Unknown user'),
+              id: String(item.usercode ?? item.user_id ?? '—'),
+              filters: [
+                ...(streak >= 3 ? ['streak'] : []),
+                ...(tier.toLowerCase() === 'student' ? ['student'] : []),
+                ...(limitSet == null || limitSet === false || String(limitSet).toLowerCase() === 'none' || String(limitSet).toLowerCase() === 'false' ? ['no-limit'] : []),
+                ...(!sent ? ['no-intervention'] : []),
+              ],
+              highlight: !sent || streak >= 3,
+              cells: [
+                { value: tier, tone: tier.toLowerCase() === 'student' ? 'red' : 'muted', badge: true },
+                { value: loss == null ? '—' : formatMoney(loss), tone: 'red' },
+                { value: `${formatNumber(streak)} month${streak === 1 ? '' : 's'}`, tone: streak >= 3 ? 'red' : 'muted' },
+                { value: hasLimit ? 'Set' : 'None', tone: hasLimit ? 'green' : 'amber', badge: true },
+                { value: sent ? 'Sent' : 'Not sent', tone: sent ? 'green' : 'red', badge: true },
+                { value: lastAction == null ? '—' : this.formatRecordDate(lastAction), tone: 'muted' },
+                { value: status, tone: sent ? 'green' : 'red', badge: true },
+              ],
+            };
+          }),
+        };
+        this.setPagination(paging, total, pageNumber);
+      },
+      error: error => this.handleDynamicError(sequence, error, 'monthly-loss'),
+    });
+  }
+
+  private loadSelfExclusions(pageNumber: number): void {
+    this.loading = true;
+    this.errorNotice = '';
+    const sequence = ++this.requestSequence;
+    const filter = this.activeFilter === 'all' ? '' : this.activeFilter;
+    this.admin.getSelfExclusions(pageNumber, 20, filter, this.searchTerm.trim()).subscribe({
+      next: (response: any) => {
+        if (sequence !== this.requestSequence) return;
+        this.loading = false;
+        if (!Array.isArray(response?.data)) {
+          this.showDynamicFailure('self-exclusion', 'The self-exclusion response was not in the expected format.');
+          return;
+        }
+        const summary = response.summary ?? {};
+        const paging = response.pagination ?? {};
+        const formatNumber = (value: unknown) => new Intl.NumberFormat('en-GB').format(Number(value) || 0);
+        const total = Number(paging.total) || 0;
+        this.page = {
+          ...rgRecordsPages['self-exclusion'],
+          description: `${formatNumber(total)} self-exclusion records`,
+          metrics: [
+            this.simpleMetric('Active Exclusions', summary.active_exclusions, 'Currently active', '#ff3b47'),
+            this.simpleMetric('Expiring Next 30 Days', summary.expiring_next_30d, 'Upcoming exclusion end dates', '#ffb627'),
+            this.simpleMetric('GAMSTOP Registered', summary.gamstop_registered, 'National self-exclusion registrations', '#a78bfa'),
+            this.simpleMetric('Expired (30d)', summary.expired_30d, 'Exclusions expired in the last 30 days', '#2bd4a1'),
+          ],
+          rows: response.data.map((item: any): RgRow => {
+            const status = String(item.status ?? 'unknown');
+            const normalizedStatus = status.toLowerCase();
+            const gamstop = item.gamstop_registered ?? item.gamstop ?? item.gamstop_status;
+            const registered = gamstop === true || ['registered', 'active', 'yes'].includes(String(gamstop ?? '').toLowerCase());
+            const expiring = item.expiring_soon === true || item.expiring_next_30d === true;
+            const started = item.started_at ?? item.start_date ?? item.exclusion_started_at;
+            const expires = item.expires_at ?? item.expiry_date ?? item.end_date ?? item.exclusion_ends_at;
+            const marketingBlocked = item.marketing_blocked ?? item.marketing_suppressed;
+            const balance = item.balance_returned ?? item.refunded_balance ?? item.balance_at_exclusion;
+            const duration = item.duration ?? item.duration_label ?? item.exclusion_period ?? '—';
+            return {
+              name: String(item.name ?? item.user_name ?? (item.user_id ? `User ${item.user_id}` : 'Excluded user')),
+              id: String(item.usercode ?? item.user_id ?? '—'),
+              filters: [
+                ...(normalizedStatus === 'active' ? ['active'] : []),
+                ...(registered ? ['gamstop'] : []),
+                ...(expiring ? ['expiring'] : []),
+                ...(normalizedStatus === 'expired' ? ['expired'] : []),
+              ],
+              cells: [
+                { value: String(duration) },
+                { value: started == null ? '—' : this.formatRecordDate(started), tone: 'muted' },
+                { value: expires == null ? '—' : this.formatRecordDate(expires), tone: expiring ? 'red' : 'muted' },
+                { value: registered ? 'Registered' : 'Not registered', tone: registered ? 'green' : 'red', badge: true },
+                { value: marketingBlocked === true ? 'Blocked' : marketingBlocked === false ? 'Not blocked' : '—', tone: marketingBlocked === true ? 'green' : 'muted', badge: true },
+                { value: balance == null ? '—' : this.formatMoney(balance), tone: 'muted' },
+                { value: status.charAt(0).toUpperCase() + status.slice(1), tone: normalizedStatus === 'active' ? 'red' : normalizedStatus === 'expired' ? 'muted' : 'amber', badge: true },
+              ],
+            };
+          }),
+        };
+        this.setPagination(paging, total, pageNumber);
+      },
+      error: error => this.handleDynamicError(sequence, error, 'self-exclusion'),
+    });
+  }
+
+  private simpleMetric(label: string, value: unknown, detail: string, color: string): RgMetric {
+    const count = Number(value) || 0;
+    return rgMetric(label, new Intl.NumberFormat('en-GB').format(count), detail, color, [count, count]);
+  }
+
+  private setPagination(paging: any, total: number, requestedPage: number): void {
+    this.pagination = {
+      total,
+      page: Number(paging.page) || requestedPage,
+      limit: Number(paging.limit) || 20,
+      totalPages: Math.max(1, Number(paging.totalPages) || 1),
+    };
+  }
+
+  private formatRecordDate(value: unknown): string {
+    const date = new Date(String(value));
+    return Number.isNaN(date.getTime())
+      ? String(value)
+      : new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  }
+
+  private formatMoney(value: unknown): string {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency', currency: 'GBP', maximumFractionDigits: 2,
+    }).format(Number(value) || 0);
+  }
+
+  private handleDynamicError(sequence: number, error: any, view: 'monthly-loss' | 'self-exclusion' | 'alerts'): void {
+    if (sequence !== this.requestSequence) return;
+    const detail = typeof error.error?.message === 'string'
+      ? error.error.message
+      : error.status === 0
+        ? 'The API could not be reached (network or CORS error).'
+        : `HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`;
+    const label = view === 'monthly-loss' ? 'monthly-loss users' : view === 'self-exclusion' ? 'self-exclusions' : 'RG alerts';
+    this.showDynamicFailure(view, `Could not load ${label}: ${detail}`);
+  }
+
+  private showDynamicFailure(view: 'monthly-loss' | 'self-exclusion' | 'alerts', message: string): void {
+    this.loading = false;
+    this.errorNotice = message;
+    this.pagination = null;
+    this.page = {
+      ...rgRecordsPages[view],
+      description: 'API data is unavailable.',
+      metrics: rgRecordsPages[view].metrics.map(item => ({ ...item, value: '—', detail: 'Unavailable', sparkline: '' })),
+      rows: [],
+    };
+  }
+
+  private loadRgAlerts(pageNumber: number): void {
+    this.loading = true;
+    this.errorNotice = '';
+    const sequence = ++this.requestSequence;
+    this.admin.getRgAlerts(pageNumber, 20).subscribe({
+      next: (response: any) => {
+        if (sequence !== this.requestSequence) return;
+        this.loading = false;
+        if (!Array.isArray(response?.data)) {
+          this.showDynamicFailure('alerts', 'The RG alerts response was not in the expected format.');
+          return;
+        }
+        const summary = response.summary ?? {};
+        const paging = response.pagination ?? {};
+        const number = (value: unknown) => new Intl.NumberFormat('en-GB').format(Number(value) || 0);
+        const openAlerts = Number(summary.open_alerts) || 0;
+        const highAlerts = Number(summary.open_high) || 0;
+        const unread = Number(summary.unread) || 0;
+        const interventions = Number(summary.interventions_7d) || 0;
+        const averageResponse = Number(summary.avg_response_hours) || 0;
+        const resolved = Number(summary.resolved_30d) || 0;
+        const total = Number(paging.total) || 0;
+        this.page = {
+          ...rgRecordsPages.alerts,
+          description: `${number(total)} alert records · ${number(unread)} unread`,
+          metrics: [
+            rgMetric('Open Alerts', number(openAlerts), `${number(highAlerts)} high · ${number(unread)} unread`, '#ff3b47', [openAlerts, openAlerts]),
+            rgMetric('Sent Interventions (7d)', number(interventions), 'Interventions in the last 7 days', '#a78bfa', [interventions, interventions]),
+            rgMetric('Avg Response Time', `${number(averageResponse)}h`, 'Target under 6 hours', '#2bd4a1', [averageResponse, averageResponse]),
+            rgMetric('Resolved (30d)', number(resolved), 'Alerts resolved in the last 30 days', '#5b8def', [resolved, resolved]),
+          ],
+          rows: response.data.map((item: any): RgRow => {
+            const priority = String(item.priority ?? item.severity ?? 'low');
+            const normalizedPriority = priority.toLowerCase();
+            const status = String(item.status ?? 'open');
+            const resolvedRow = normalizedPriority === 'resolved' || status.toLowerCase() === 'resolved';
+            const alertType = String(item.alert_type ?? item.type ?? item.title ?? 'RG Alert');
+            const trigger = String(item.trigger ?? item.trigger_code ?? item.rule_code ?? item.code ?? '—');
+            const assigned = String(item.assigned_to ?? item.assignee ?? item.assigned ?? 'Unassigned');
+            const actionTaken = String(item.action_taken ?? item.last_action ?? item.intervention ?? '—');
+            const age = item.age ?? item.age_label ?? (item.created_at ? this.elapsedAge(item.created_at) : '—');
+            const unreadRow = item.unread === true || item.is_read === false || item.read === false;
+            const priorityTone: RgTone = normalizedPriority === 'high' ? 'red'
+              : normalizedPriority === 'medium' ? 'amber'
+                : normalizedPriority === 'low' ? 'blue' : 'muted';
+            return {
+              name: String(item.user_name ?? item.name ?? item.usercode ?? 'Unknown user'),
+              id: String(item.usercode ?? item.user_id ?? item.id ?? '—'),
+              filters: [
+                ...(resolvedRow ? ['resolved'] : []),
+                ...(!resolvedRow && ['high', 'medium', 'low'].includes(normalizedPriority) ? [normalizedPriority] : []),
+              ],
+              highlight: !resolvedRow && (normalizedPriority === 'high' || unreadRow),
+              cells: [
+                { value: alertType },
+                { value: trigger, tone: 'muted' },
+                { value: priority.charAt(0).toUpperCase() + priority.slice(1), tone: priorityTone, badge: true },
+                { value: String(age) },
+                { value: assigned, tone: assigned.toLowerCase() === 'unassigned' ? 'red' : 'muted' },
+                { value: actionTaken, tone: actionTaken === '—' ? 'muted' : 'green' },
+                { value: resolvedRow ? 'Resolved' : unreadRow ? 'Unread' : status, tone: resolvedRow ? 'green' : unreadRow ? 'amber' : 'muted', badge: true },
+              ],
+            };
+          }),
+        };
+        this.setPagination(paging, total, pageNumber);
+      },
+      error: error => this.handleDynamicError(sequence, error, 'alerts'),
+    });
+  }
+
+  private elapsedAge(value: unknown): string {
+    const timestamp = new Date(String(value)).getTime();
+    if (Number.isNaN(timestamp)) return String(value);
+    const elapsedMinutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+    if (elapsedMinutes < 60) return `${elapsedMinutes}m`;
+    const elapsedHours = Math.floor(elapsedMinutes / 60);
+    if (elapsedHours < 24) return `${elapsedHours}h`;
+    return `${Math.floor(elapsedHours / 24)}d`;
+  }
+
+  private setLimitChangesLoadingPage(): void {
+    this.page = {
+      ...rgRecordsPages['limit-reductions'],
+      description: 'Loading limit-change records…',
+      rows: [],
+      metrics: rgRecordsPages['limit-reductions'].metrics.map(item => ({
+        ...item,
+        value: '—',
+        detail: 'Loading…',
+        sparkline: '',
+      })),
+    };
+  }
+
+  private loadLimitChanges(pageNumber: number): void {
+    this.loading = true;
+    this.errorNotice = '';
+    const requestSequence = ++this.requestSequence;
+    this.admin.getLimitChanges(pageNumber, 20).subscribe({
+      next: (response: any) => {
+        if (requestSequence !== this.requestSequence) return;
+        this.loading = false;
+        if (!Array.isArray(response?.data)) {
+          this.showLimitChangesFailure('The limit changes response was not in the expected format.');
+          return;
+        }
+        const summary = response.summary ?? {};
+        const pagination = response.pagination ?? {};
+        const number = (value: unknown) => new Intl.NumberFormat('en-GB').format(Number(value) || 0);
+        const money = (value: unknown) => value === null || value === undefined || value === ''
+          ? '—'
+          : new Intl.NumberFormat('en-GB', {
+              style: 'currency', currency: 'GBP', maximumFractionDigits: 2,
+            }).format(Number(value) || 0);
+        const metric = (label: string, value: unknown, detail: string, color: string, suffix = ''): RgMetric => {
+          const metricValue = Number(value) || 0;
+          return rgMetric(label, `${number(metricValue)}${suffix}`, detail, color, [metricValue, metricValue]);
+        };
+        const total = Number(pagination.total) || 0;
+        const reductionsPct = Number(summary.avg_reduction_pct) || 0;
+        const avgOld = summary.avg_old_limit;
+        const avgNew = summary.avg_new_limit;
+        const averageRange = avgOld == null || avgNew == null
+          ? 'Average limits unavailable'
+          : `${money(avgOld)} → ${money(avgNew)} average`;
+        this.page = {
+          ...rgRecordsPages['limit-reductions'],
+          description: `${number(total)} limit changes · reductions take effect immediately; increases follow the cooling period`,
+          metrics: [
+            metric('Reductions (30d)', summary.reductions_30d, 'Applied in the last 30 days', '#a78bfa'),
+            metric('Awaiting Cooling', summary.awaiting_cooling, 'Requests in cooling period', '#ffb627'),
+            metric('Avg Reduction %', reductionsPct, averageRange, '#2bd4a1', '%'),
+            metric('Requests Today', summary.requests_today, 'Limit requests received today', '#5b8def'),
+          ],
+          rows: response.data.map((item: any): RgRow => {
+            const requestType = String(item.request_type ?? 'unknown');
+            const normalizedType = requestType.toLowerCase();
+            const status = String(item.status ?? 'unknown');
+            const normalizedStatus = status.toLowerCase();
+            const cooling = normalizedStatus.includes('pending') || normalizedStatus.includes('cooling');
+            const requestDate = item.requested_at
+              ? new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(item.requested_at))
+              : '—';
+            const changePct = item.change_pct == null ? '—' : `${Number(item.change_pct) > 0 ? '+' : ''}${number(item.change_pct)}%`;
+            const typeLabel = normalizedType.charAt(0).toUpperCase() + normalizedType.slice(1);
+            const statusTone: RgTone = cooling ? 'amber' : normalizedStatus === 'applied' ? 'green' : 'muted';
+            return {
+              name: String(item.name ?? 'Unknown user'),
+              id: String(item.usercode ?? item.user_id ?? item.ref ?? '—'),
+              filters: [normalizedType, ...(cooling ? ['pending'] : [])],
+              cells: [
+                { value: typeLabel, tone: normalizedType === 'reduction' ? 'green' : 'amber', badge: true },
+                { value: money(item.old_limit), tone: 'muted' },
+                { value: money(item.new_limit) },
+                { value: changePct, tone: normalizedType === 'reduction' ? 'green' : 'amber' },
+                { value: requestDate, tone: 'muted' },
+                { value: String(item.effective_at ?? '—') },
+                { value: status.charAt(0).toUpperCase() + status.slice(1), tone: statusTone, badge: true },
+              ],
+            };
+          }),
+        };
+        this.pagination = {
+          total,
+          page: Number(pagination.page) || pageNumber,
+          limit: Number(pagination.limit) || 20,
+          totalPages: Math.max(1, Number(pagination.totalPages) || 1),
+        };
+      },
+      error: (error: any) => {
+        if (requestSequence !== this.requestSequence) return;
+        const detail = typeof error.error?.message === 'string'
+          ? error.error.message
+          : error.status === 0
+            ? 'The API could not be reached (network or CORS error).'
+            : `HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`;
+        this.showLimitChangesFailure(`Could not load limit changes: ${detail}`);
+      },
+    });
+  }
+
+  private showLimitChangesFailure(message: string): void {
+    this.loading = false;
+    this.errorNotice = message;
+    this.pagination = null;
+    this.page = {
+      ...rgRecordsPages['limit-reductions'],
+      description: 'Limit-change data is unavailable.',
+      metrics: rgRecordsPages['limit-reductions'].metrics.map(item => ({
+        ...item, value: '—', detail: 'Unavailable', sparkline: '',
+      })),
+      rows: [],
+    };
+  }
+
+  private setDepositLimitsLoadingPage(): void {
+    this.page = {
+      ...rgRecordsPages['deposit-limits'],
+      description: 'Loading deposit-limit records…',
+      rows: [],
+      metrics: this.page.metrics.map((item) => ({
+        ...item,
+        value: '—',
+        detail: 'Loading…',
+        sparkline: '',
+      })),
+    };
+  }
+
+  private loadDepositLimits(pageNumber: number): void {
+    this.loading = true;
+    this.errorNotice = '';
+    this.notice = '';
+    const requestSequence = ++this.requestSequence;
+    const filter = this.activeFilter === 'all' ? '' : this.activeFilter;
+    this.admin.getDepositLimits(
+      pageNumber,
+      20,
+      filter,
+      this.searchTerm.trim(),
+    ).subscribe({
+      next: (response: any) => {
+        if (requestSequence !== this.requestSequence) return;
+        this.loading = false;
+        if (!Array.isArray(response?.data)) {
+          this.showDepositLimitsFailure(
+            'The deposit limits response was not in the expected format.',
+          );
+          return;
+        }
+        const summary = response.summary ?? {};
+        const pagination = response.pagination ?? {};
+        const number = (value: unknown) =>
+          new Intl.NumberFormat('en-GB').format(Number(value) || 0);
+        const money = (value: unknown) =>
+          new Intl.NumberFormat('en-GB', {
+            style: 'currency',
+            currency: 'GBP',
+            maximumFractionDigits: 2,
+          }).format(Number(value) || 0);
+        const metric = (
+          label: string,
+          value: unknown,
+          detail: string,
+          color: string,
+        ): RgMetric => {
+          const metricValue = Number(value) || 0;
+          return rgMetric(
+            label,
+            number(metricValue),
+            detail,
+            color,
+            [metricValue, metricValue],
+          );
+        };
+        const total = Number(pagination.total) || 0;
+        const reduced = Number(summary.users_with_reduced_limit) || 0;
+        const reducedPct = Number(summary.reduced_pct) || 0;
+        const capBreaches = Number(summary.student_cap_breaches) || 0;
+        this.page = {
+          ...rgRecordsPages['deposit-limits'],
+          description: `${number(total)} users · ${number(reduced)} with a reduced limit`,
+          metrics: [
+            metric(
+              'Users With Reduced Limit',
+              reduced,
+              `${number(reducedPct)}% of users`,
+              '#a78bfa',
+            ),
+            metric(
+              'At Monthly Limit',
+              summary.at_monthly_limit,
+              'Users at their monthly cap',
+              '#ff3b47',
+            ),
+            metric(
+              'Student-Cap Breaches',
+              capBreaches,
+              `Student cap ${money(summary.student_cap)}`,
+              '#ffb627',
+            ),
+            metric(
+              'Deposit Limit Records',
+              total,
+              `Page ${Number(pagination.page) || pageNumber} of ${Number(pagination.totalPages) || 1}`,
+              '#5b8def',
+            ),
+          ],
+          columns: [
+            'Tier',
+            'Limit Type',
+            'Cap',
+            'Used Today',
+            'Used Month',
+            'Limit Reduced',
+            'Pending Request',
+            'Status',
+          ],
+          filters: [
+            { label: 'All', key: 'all' },
+            { label: 'Daily', key: 'daily' },
+            { label: 'Weekly', key: 'weekly' },
+            { label: 'Monthly', key: 'monthly' },
+            { label: 'Student Cap', key: 'student' },
+            { label: 'At Limit', key: 'at-limit' },
+            { label: 'Reduced Once', key: 'reduced' },
+            { label: 'Pending Request', key: 'pending' },
+          ],
+          rows: response.data.map((item: any): RgRow => {
+            const tier = String(item.tier ?? 'Other');
+            const limitType = String(item.limit_type ?? 'Unknown');
+            const status = String(item.status ?? 'unknown');
+            const usage = Math.max(0, Math.min(100, Number(item.usage_pct) || 0));
+            const reducedOnce = Boolean(item.limit_reduced_once);
+            const pending = Boolean(item.pending_request);
+            const atLimit = usage >= 100 || status.toLowerCase().includes('limit');
+            const filters = [
+              limitType.toLowerCase(),
+              ...(tier.toLowerCase() === 'student' ? ['student'] : []),
+              ...(atLimit ? ['at-limit'] : []),
+              ...(reducedOnce ? ['reduced'] : []),
+              ...(pending ? ['pending'] : []),
+            ];
+            const statusTone: RgTone =
+              status.toLowerCase() === 'ok'
+                ? 'green'
+                : atLimit || pending
+                  ? 'red'
+                  : 'amber';
+            return {
+              name: String(item.name ?? 'Unknown user'),
+              id: String(item.usercode ?? item.user_id ?? '—'),
+              filters,
+              highlight: atLimit || pending,
+              cells: [
+                {
+                  value: tier,
+                  tone: tier.toLowerCase() === 'student' ? 'violet' : 'muted',
+                  badge: true,
+                },
+                { value: limitType.charAt(0).toUpperCase() + limitType.slice(1) },
+                { value: money(item.cap), tone: 'muted' },
+                { value: money(item.used_today) },
+                { value: money(item.used_month), tone: usage >= 90 ? 'amber' : 'muted' },
+                {
+                  value: reducedOnce ? 'Yes' : 'No',
+                  tone: reducedOnce ? 'violet' : 'muted',
+                  badge: true,
+                },
+                {
+                  value: pending ? 'Pending' : 'None',
+                  tone: pending ? 'amber' : 'muted',
+                  badge: true,
+                },
+                {
+                  value: status.charAt(0).toUpperCase() + status.slice(1),
+                  tone: statusTone,
+                  badge: true,
+                },
+              ],
+            };
+          }),
+        };
+        this.pagination = {
+          total,
+          page: Number(pagination.page) || pageNumber,
+          limit: Number(pagination.limit) || 20,
+          totalPages: Math.max(1, Number(pagination.totalPages) || 1),
+        };
+      },
+      error: (error: any) => {
+        if (requestSequence !== this.requestSequence) return;
+        const detail =
+          typeof error.error?.message === 'string'
+            ? error.error.message
+            : error.status === 0
+              ? 'The API could not be reached (network or CORS error).'
+              : `HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`;
+        this.showDepositLimitsFailure(`Could not load deposit limits: ${detail}`);
+      },
+    });
+  }
+
+  private showDepositLimitsFailure(message: string): void {
+    this.loading = false;
+    this.errorNotice = message;
+    this.pagination = null;
+    this.page = {
+      ...rgRecordsPages['deposit-limits'],
+      description: 'Deposit-limit data is unavailable.',
+      metrics: rgRecordsPages['deposit-limits'].metrics.map((item) => ({
+        ...item,
+        value: '—',
+        detail: 'Unavailable',
+        sparkline: '',
+      })),
+      rows: [],
+    };
+  }
+
+  get pageRangeLabel(): string {
+    if (!this.pagination || this.pagination.total === 0) return 'Showing 0 of 0 records';
+    const start = (this.pagination.page - 1) * this.pagination.limit + 1;
+    const end = Math.min(this.pagination.page * this.pagination.limit, this.pagination.total);
+    return `Showing ${start}–${end} of ${this.pagination.total} records`;
+  }
+
+  previousPage(): void {
+    if (!this.pagination || this.pagination.page <= 1) return;
+    if (this.isDepositLimitsView) this.loadDepositLimits(this.pagination.page - 1);
+    else if (this.isLimitChangesView) this.loadLimitChanges(this.pagination.page - 1);
+    else if (this.isMonthlyLossView) this.loadMonthlyLossUsers(this.pagination.page - 1);
+    else if (this.isSelfExclusionView) this.loadSelfExclusions(this.pagination.page - 1);
+    else if (this.isAlertsView) this.loadRgAlerts(this.pagination.page - 1);
+  }
+
+  nextPage(): void {
+    if (!this.pagination || this.pagination.page >= this.pagination.totalPages) return;
+    if (this.isDepositLimitsView) this.loadDepositLimits(this.pagination.page + 1);
+    else if (this.isLimitChangesView) this.loadLimitChanges(this.pagination.page + 1);
+    else if (this.isMonthlyLossView) this.loadMonthlyLossUsers(this.pagination.page + 1);
+    else if (this.isSelfExclusionView) this.loadSelfExclusions(this.pagination.page + 1);
+    else if (this.isAlertsView) this.loadRgAlerts(this.pagination.page + 1);
   }
 
   setSearchTerm(value: string): void {
     this.searchTerm = value;
+    if (this.isDepositLimitsView) this.loadDepositLimits(1);
+    else if (this.isSelfExclusionView) this.loadSelfExclusions(1);
   }
 
   getInitials(name: string): string {
@@ -57,6 +725,10 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
 
   setFilter(key: string): void {
     this.activeFilter = key;
+    if (this.isDepositLimitsView) this.loadDepositLimits(1);
+    else if (this.isSelfExclusionView) this.loadSelfExclusions(1);
+    // Limit-change filters apply to the API-backed page because this endpoint
+    // accepts only page and limit query parameters.
   }
 
   handleTopbarAction(action: 'primary' | 'secondary'): void {

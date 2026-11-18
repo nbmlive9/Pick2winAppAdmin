@@ -25,52 +25,36 @@
       </div>
     </header>
     <p *ngIf="notice" class="notice" role="status">{{ notice }}</p>
+    <p *ngIf="errorNotice" class="notice" role="alert">{{ errorNotice }}</p>
 
     <div class="cases-layout" *ngIf="pageKey === 'cases'; else fullTable">
       <div class="table-scroll">
         <table class="records-table cases-table">
           <thead><tr><th *ngFor="let column of page.columns">{{ column }}</th></tr></thead>
           <tbody>
-            <tr *ngFor="let row of filteredRows">
+            <tr *ngFor="let row of filteredRows" (click)="selectCase(row)" [class.row-highlight]="row.highlight">
               <td *ngFor="let cell of row.cells; let cellIndex = index" [class]="cell.tone ? 'tone-' + cell.tone : ''">
                 <ng-container [ngTemplateOutlet]="cellTemplate" [ngTemplateOutletContext]="{ cell: cell, row: row, cellIndex: cellIndex }"></ng-container>
               </td>
             </tr>
-            <tr *ngIf="filteredRows.length === 0"><td class="empty-state" [attr.colspan]="page.columns.length">No matching compliance cases.</td></tr>
+            <tr *ngIf="loading"><td class="empty-state" [attr.colspan]="page.columns.length">Loading compliance cases…</td></tr>
+            <tr *ngIf="!loading && filteredRows.length === 0"><td class="empty-state" [attr.colspan]="page.columns.length">No matching compliance cases.</td></tr>
           </tbody>
         </table>
       </div>
       <aside class="case-detail">
-        <p class="case-reference">CMP-9178 · selected</p>
-        <h3>Multiple Accounts · Aaron Khouri</h3>
-        <span class="detail-risk">● Risk 92</span>
-        <div class="detail-grid">
-          <div><small>User ID</small><strong>UK-48820</strong></div>
-          <div><small>Triggered</small><strong>6h ago</strong></div>
-          <div><small>KYC1</small><strong class="tone-green">Approved</strong></div>
-          <div><small>AML</small><strong class="tone-red">High</strong></div>
-          <div><small>Linked Accts</small><strong>4</strong></div>
-          <div><small>Shared Device</small><strong>iPhone 14 · IMEI…</strong></div>
-        </div>
-        <h4>Evidence</h4>
-        <ul class="evidence-list">
-          <li class="evidence-high">4 distinct UK-IDs verified on shared iOS device (DEV-AX14)</li>
-          <li class="evidence-high">Same Stripe card •••8821 used across 3 accounts</li>
-          <li>Login IPs cluster (88.156.42.x · 88.156.43.x)</li>
-          <li>Referral chain — 2 of 4 accounts referred each other</li>
-        </ul>
-        <h4>Linked Accounts</h4>
-        <ul class="linked-list">
-          <li><span class="linked-avatar">AK</span><span>Aaron Khouri<small>UK-48820</small></span><b>primary</b></li>
-          <li><span class="linked-avatar">AK</span><span>A. Khouri<small>UK-48833</small></span><b>suspected</b></li>
-          <li><span class="linked-avatar">AK</span><span>Adnan K.<small>UK-48841</small></span><b>suspected</b></li>
-          <li><span class="linked-avatar">AK</span><span>A.J. Khouri<small>UK-48902</small></span><b>suspected</b></li>
-        </ul>
-        <div class="detail-actions">
-          <button type="button" (click)="notice = 'Hold selected for CMP-9178.'">Hold</button>
-          <button type="button" (click)="notice = 'Request Docs selected for CMP-9178.'">Request Docs</button>
-          <button type="button" class="danger-action" (click)="notice = 'Suspend All selected for CMP-9178.'">Suspend All</button>
-        </div>
+        <p class="case-reference">Case details</p>
+        <p *ngIf="selectedCaseLoading">Loading selected case…</p>
+        <p *ngIf="selectedCaseError" role="alert">{{ selectedCaseError }}</p>
+        <ng-container *ngIf="!selectedCaseLoading && selectedCase; else noCaseSelected">
+          <h3>{{ selectedCase.case_type || selectedCase.type || selectedCase.ref || selectedCase.case_id || 'Selected case' }}</h3>
+          <dl class="detail-grid">
+            <ng-container *ngFor="let property of selectedCase | keyvalue">
+              <div><dt>{{ property.key }}</dt><dd>{{ property.value | json }}</dd></div>
+            </ng-container>
+          </dl>
+        </ng-container>
+        <ng-template #noCaseSelected><p>Select a case row to load its details.</p></ng-template>
       </aside>
     </div>
 
@@ -84,11 +68,18 @@
                 <ng-container [ngTemplateOutlet]="cellTemplate" [ngTemplateOutletContext]="{ cell: cell, row: row, cellIndex: cellIndex }"></ng-container>
               </td>
             </tr>
-            <tr *ngIf="filteredRows.length === 0"><td class="empty-state" [attr.colspan]="page.columns.length">No matching records.</td></tr>
+            <tr *ngIf="loading"><td class="empty-state" [attr.colspan]="page.columns.length">Loading compliance records…</td></tr>
+            <tr *ngIf="!loading && filteredRows.length === 0"><td class="empty-state" [attr.colspan]="page.columns.length">No matching records.</td></tr>
           </tbody>
         </table>
       </div>
     </ng-template>
+    <footer class="compliance-pagination" *ngIf="pagination">
+      <span>{{ pagination.total ? 'Showing ' + ((pagination.page - 1) * pagination.limit + 1) + '–' + (pagination.page * pagination.limit > pagination.total ? pagination.total : pagination.page * pagination.limit) + ' of ' + pagination.total : 'Showing 0 of 0 records' }}</span>
+      <button type="button" (click)="previousPage()" [disabled]="pagination.page <= 1">Previous</button>
+      <span>Page {{ pagination.page }} of {{ pagination.totalPages }}</span>
+      <button type="button" (click)="nextPage()" [disabled]="pagination.page >= pagination.totalPages">Next</button>
+    </footer>
   </section>
 </div>
 
