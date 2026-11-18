@@ -30,6 +30,7 @@ interface UserRow {
   filters: string[];
   action?: string;
   actionTone?: Tone;
+  profileUserId?: string | number;
 }
 
 interface UserPage {
@@ -87,6 +88,7 @@ const row = (
   filters: string[],
   action?: string,
   actionTone?: Tone,
+  profileUserId?: string | number,
 ): UserRow => ({
   name,
   id,
@@ -101,6 +103,7 @@ const row = (
   filters,
   action,
   actionTone,
+  profileUserId,
 });
 
 const pages: Record<UserView, UserPage> = {
@@ -777,6 +780,7 @@ export class UserRecordsComponent implements OnInit {
   loading = false;
   isStudentView = false;
   isSubscriptionView = false;
+  isConsentView = false;
   private subscriptionLoadSequence = 0;
   studentPagination: {
     total: number;
@@ -785,6 +789,12 @@ export class UserRecordsComponent implements OnInit {
     totalPages: number;
   } | null = null;
   subscriptionPagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  } | null = null;
+  consentPagination: {
     total: number;
     page: number;
     limit: number;
@@ -802,6 +812,7 @@ export class UserRecordsComponent implements OnInit {
     this.page = initialView ? pages[initialView] : pages.all;
     this.isStudentView = initialView === 'students';
     this.isSubscriptionView = initialView === 'subscriptions';
+    this.isConsentView = initialView === 'consents';
   }
 
   ngOnInit(): void {
@@ -810,10 +821,12 @@ export class UserRecordsComponent implements OnInit {
       this.page = view ? pages[view] : pages.all;
       this.isStudentView = view === 'students';
       this.isSubscriptionView = view === 'subscriptions';
+      this.isConsentView = view === 'consents';
       this.activeFilter = 'all';
       this.searchTerm = '';
       this.studentPagination = null;
       this.subscriptionPagination = null;
+      this.consentPagination = null;
       this.notice = '';
       if (view === 'students') {
         this.page = {
@@ -840,6 +853,19 @@ export class UserRecordsComponent implements OnInit {
           })),
         };
         this.loadSubscriptions(1);
+      } else if (view === 'consents') {
+        this.page = {
+          ...pages.consents,
+          description: 'Loading consent records…',
+          rows: [],
+          metrics: pages.consents.metrics.map((item) => ({
+            ...item,
+            value: '—',
+            detail: 'Loading…',
+            sparkline: undefined,
+          })),
+        };
+        this.loadConsents(1);
       }
     });
   }
@@ -965,6 +991,9 @@ export class UserRecordsComponent implements OnInit {
                 ),
               ],
               filters,
+              'View profile',
+              'blue',
+              user.user_id,
             );
           }),
           primaryAction: 'Export CSV',
@@ -1134,6 +1163,9 @@ export class UserRecordsComponent implements OnInit {
                   ),
                 ],
                 filters,
+                'View profile',
+                'blue',
+                subscription.user_id,
               );
             }),
           };
@@ -1176,6 +1208,181 @@ export class UserRecordsComponent implements OnInit {
     };
   }
 
+  private consentPolicyKey(policyType: string): string {
+    const policy = policyType.toLowerCase();
+    if (policy.includes('terms')) return 'terms';
+    if (policy.includes('privacy') || policy.includes('data protection'))
+      return 'privacy';
+    if (policy.includes('responsible gaming')) return 'rg';
+    if (policy.includes('aml') || policy.includes('kyc')) return 'aml';
+    if (policy.includes('payment') || policy.includes('wallet'))
+      return 'payments';
+    if (policy.includes('subscription') || policy.includes('uct'))
+      return 'subscription';
+    if (policy.includes('communication')) return 'communication';
+    return 'other';
+  }
+
+  private loadConsents(pageNumber: number): void {
+    this.loading = true;
+    this.admin.getConsentLogs(pageNumber, 20).subscribe({
+      next: (response: any) => {
+        this.loading = false;
+        if (!Array.isArray(response?.data)) {
+          this.showConsentLoadFailure(
+            'The consent logs response was not in the expected format.',
+          );
+          return;
+        }
+
+        const summary = response.summary ?? {};
+        const policySummaries = Array.isArray(summary.by_policy)
+          ? summary.by_policy
+          : [];
+        const findPolicy = (search: string) =>
+          policySummaries.find((policy: any) =>
+            String(policy.policy_type ?? '')
+              .toLowerCase()
+              .includes(search),
+          ) ?? {};
+        const number = (value: number | null | undefined) =>
+          new Intl.NumberFormat('en-GB').format(Number(value) || 0);
+        const dateTime = (value: string | null | undefined) => {
+          if (!value) return '—';
+          const parsed = new Date(value);
+          return Number.isNaN(parsed.getTime())
+            ? '—'
+            : parsed.toLocaleString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+        };
+        const terms = findPolicy('terms and conditions');
+        const privacy = findPolicy('privacy and data protection');
+        const communication = findPolicy('consent and communication');
+
+        this.page = {
+          ...pages.consents,
+          description: `Consent audit log · ${number(summary.pending_reconsent_users)} users pending re-consent`,
+          metrics: [
+            metric(
+              'Terms Consents (30d)',
+              number(terms.consents_30d),
+              `Version ${terms.current_version ?? '—'} · ${number(terms.users_accepted)} users accepted`,
+              '#5b8def',
+            ),
+            metric(
+              'Privacy Consents (30d)',
+              number(privacy.consents_30d),
+              `Version ${privacy.current_version ?? '—'} · ${number(privacy.users_accepted)} users accepted`,
+              '#a78bfa',
+            ),
+            metric(
+              'Communication Policy',
+              number(communication.users_accepted),
+              `Version ${communication.current_version ?? '—'} · users accepted`,
+              '#2bd4a1',
+            ),
+            metric(
+              'Pending Re-consent',
+              number(summary.pending_reconsent_users),
+              'Users requiring updated consent',
+              '#ffb627',
+            ),
+          ],
+          columns: [
+            'Policy',
+            'Version',
+            'Action',
+            'Accepted At',
+            'IP Address',
+            'Device',
+            'Status',
+          ],
+          filters: [
+            { label: 'All', key: 'all' },
+            { label: 'Terms', key: 'terms' },
+            { label: 'Privacy', key: 'privacy' },
+            { label: 'Responsible Gaming', key: 'rg' },
+            { label: 'KYC / AML', key: 'aml' },
+            { label: 'Payments', key: 'payments' },
+            { label: 'Subscription', key: 'subscription' },
+            { label: 'Communication', key: 'communication' },
+            { label: 'Other', key: 'other' },
+          ],
+          rows: response.data.map((consent: any): UserRow => {
+            const policyType = String(consent.policy_type ?? 'Unknown policy');
+            const policyKey = this.consentPolicyKey(policyType);
+            const action = String(consent.action ?? 'Unknown');
+            const status = String(consent.status ?? 'unknown');
+            const actionTone: Tone =
+              action.toLowerCase() === 'accepted' ? 'positive' : 'warning';
+            const statusTone: Tone =
+              status.toLowerCase() === 'active' ? 'positive' : 'warning';
+            return row(
+              String(consent.name ?? 'Unknown user'),
+              String(consent.usercode ?? consent.user_id ?? '—'),
+              [
+                cell(policyType, 'blue', true),
+                cell(String(consent.version ?? '—')),
+                cell(action, actionTone),
+                cell(dateTime(consent.accepted_at)),
+                cell(String(consent.ip_address ?? '—')),
+                cell(String(consent.device ?? '—')),
+                cell(
+                  status.charAt(0).toUpperCase() + status.slice(1),
+                  statusTone,
+                  true,
+                ),
+              ],
+              [policyKey],
+              'View profile',
+              'blue',
+              consent.user_id,
+            );
+          }),
+        };
+
+        const pagination = response.pagination ?? {};
+        this.consentPagination = {
+          total: Number(pagination.total) || 0,
+          page: Number(pagination.page) || pageNumber,
+          limit: Number(pagination.limit) || 20,
+          totalPages: Number(pagination.totalPages) || 1,
+        };
+      },
+      error: (error: HttpErrorResponse) => {
+        const detail =
+          typeof error.error?.message === 'string'
+            ? error.error.message
+            : error.status === 0
+              ? 'The API could not be reached (network or CORS error).'
+              : `HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`;
+        this.showConsentLoadFailure(`Could not load consent logs: ${detail}`);
+      },
+    });
+  }
+
+  private showConsentLoadFailure(message: string): void {
+    this.loading = false;
+    this.notice = message;
+    this.consentPagination = null;
+    this.page = {
+      ...pages.consents,
+      description: 'Consent log data is unavailable.',
+      metrics: pages.consents.metrics.map((item) => ({
+        ...item,
+        value: '—',
+        detail: 'Unavailable',
+        sparkline: undefined,
+      })),
+      rows: [],
+    };
+  }
+
   get studentRangeLabel(): string {
     if (!this.studentPagination || this.studentPagination.total === 0)
       return 'Showing 0 of 0 records';
@@ -1189,9 +1396,8 @@ export class UserRecordsComponent implements OnInit {
   }
 
   get activeServerPagination() {
-    return this.isSubscriptionView
-      ? this.subscriptionPagination
-      : this.studentPagination;
+    if (this.isConsentView) return this.consentPagination;
+    return this.isSubscriptionView ? this.subscriptionPagination : this.studentPagination;
   }
 
   get serverRangeLabel(): string {
@@ -1205,14 +1411,16 @@ export class UserRecordsComponent implements OnInit {
   previousServerPage(): void {
     const pagination = this.activeServerPagination;
     if (!pagination || pagination.page <= 1) return;
-    if (this.isSubscriptionView) this.loadSubscriptions(pagination.page - 1);
+    if (this.isConsentView) this.loadConsents(pagination.page - 1);
+    else if (this.isSubscriptionView) this.loadSubscriptions(pagination.page - 1);
     else this.loadStudents(pagination.page - 1);
   }
 
   nextServerPage(): void {
     const pagination = this.activeServerPagination;
     if (!pagination || pagination.page >= pagination.totalPages) return;
-    if (this.isSubscriptionView) this.loadSubscriptions(pagination.page + 1);
+    if (this.isConsentView) this.loadConsents(pagination.page + 1);
+    else if (this.isSubscriptionView) this.loadSubscriptions(pagination.page + 1);
     else this.loadStudents(pagination.page + 1);
   }
 

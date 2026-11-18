@@ -125,6 +125,11 @@ const routes: Routes = [
             data: { title: 'All Users', breadcrumbs: ['Users', 'All Users'], view: 'all' },
           },
           {
+            path: 'profile/:userId',
+            component: UserProfileComponent,
+            data: { title: 'User Profile', breadcrumbs: ['Users', 'User Profile'] },
+          },
+          {
             path: 'profile',
             component: UserProfileComponent,
             data: { title: 'User Profile · #UK-48291', breadcrumbs: ['Users', 'All Users', 'Daniel Foster'] },

@@ -56,4 +56,27 @@ export class AdminService {
       params,
     });
   }
+
+  getConsentLogs(page = 1, limit = 20): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    const params = new HttpParams().set('page', page).set('limit', limit);
+    return this.http.get(`${this.Base_URL}/getconsentlogs`, {
+      headers,
+      params,
+    });
+  }
+
+  getUserProfile(userId: string | number): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.get(
+      `${this.Base_URL}/getuserprofile/${encodeURIComponent(String(userId))}`,
+      { headers },
+    );
+  }
 }
