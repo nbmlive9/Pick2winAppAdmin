@@ -68,6 +68,95 @@
   font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
+.account-action-feedback {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 1px solid;
+  border-radius: 10px;
+  box-sizing: border-box;
+  font-size: clamp(12px, calc(11px + 0.35vw), 14px);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.feedback-success {
+  border-color: rgba(43, 212, 161, .28);
+  color: #8be5c6;
+  background: rgba(43, 212, 161, .08);
+}
+
+.feedback-error {
+  border-color: rgba(255, 91, 104, .32);
+  color: #ffb0b5;
+  background: rgba(255, 59, 71, .09);
+}
+
+.feedback-icon {
+  display: grid;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .08);
+  font-weight: 700;
+}
+
+.erasure-form {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 182, 39, .28);
+  border-radius: 10px;
+  box-sizing: border-box;
+  background: rgba(255, 182, 39, .06);
+}
+
+.erasure-form label {
+  color: #e7d5a8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.erasure-form textarea,
+.erasure-form input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 7px;
+  box-sizing: border-box;
+  color: #e4e8f2;
+  background: #111521;
+  font: inherit;
+  resize: vertical;
+}
+
+
+.erasure-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.erasure-submit {
+  border-color: rgba(255, 182, 39, .38);
+  color: #ffe0a0;
+}
+
+@media (max-width: 480px) {
+  .erasure-form-actions .button {
+    flex: 1 1 auto;
+  }
+}
+
 .loading-panel,
 .empty-copy {
   color: #aeb7cd;
@@ -711,6 +800,55 @@ p {
   min-height: 25px;
   margin-top: 2px;
   background: transparent;
+}
+
+.admin-note-form {
+  display: grid;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.admin-note-form label {
+  color: #aeb7cd;
+  font-size: clamp(12px, calc(11px + 0.4vw), 14px);
+}
+
+.admin-note-form textarea {
+  width: 100%;
+  min-height: 82px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 8px;
+  background: #171a24;
+  color: #dce1ed;
+  font: inherit;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.admin-note-form textarea:focus {
+  border-color: #718cf5;
+  outline: 2px solid rgba(113, 140, 245, .2);
+}
+
+.note-submit {
+  justify-content: center;
+  min-height: 36px;
+}
+
+.note-feedback {
+  margin: 2px 0;
+  font-size: clamp(12px, calc(11px + 0.35vw), 14px);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.note-error {
+  color: #ff9a9a;
+}
+
+.note-success {
+  color: #61d8ae;
 }
 
 @media (max-width: 1100px) {

@@ -31,6 +31,7 @@ interface UserRow {
   action?: string;
   actionTone?: Tone;
   profileUserId?: string | number;
+  user_id?: string | number; // Added user_id property to UserRow interface
 }
 
 interface UserPage {
@@ -246,30 +247,10 @@ const pages: Record<UserView, UserPage> = {
     title: 'Student Users',
     description: 'Student user data loaded from the admin service.',
     metrics: [
-      metric(
-        'Total Student Users',
-        '—',
-        '',
-        '#a78bfa',
-      ),
-      metric(
-        'At Deposit Limit',
-        '—',
-        '',
-        '#ff3b47',
-      ),
-      metric(
-        'Monthly Loss Flags',
-        '—',
-        '',
-        '#ffb627',
-      ),
-      metric(
-        'High Risk / Self Excluded',
-        '—',
-        '',
-        '#ff3b47',
-      ),
+      metric('Total Student Users', '—', '', '#a78bfa'),
+      metric('At Deposit Limit', '—', '', '#ff3b47'),
+      metric('Monthly Loss Flags', '—', '', '#ffb627'),
+      metric('High Risk / Self Excluded', '—', '', '#ff3b47'),
     ],
     columns: [
       'Joined',
@@ -816,7 +797,8 @@ export class UserRecordsComponent implements OnInit {
     // The layout reads page actions as soon as the router activates this
     // component. Initialize from the route snapshot before the first check so
     // it never briefly exposes the default All Users action on another view.
-    const initialView = this.route.snapshot.data['view'] as UserView | undefined;
+    const initialView = this.route.snapshot.data['view'] as
+      UserView | undefined;
     this.page = initialView ? pages[initialView] : pages.all;
     this.isStudentView = initialView === 'students';
     this.isSubscriptionView = initialView === 'subscriptions';
@@ -961,6 +943,7 @@ export class UserRecordsComponent implements OnInit {
             ),
           ],
           columns: [
+            'User ID',
             'Joined',
             'Limit Usage',
             'Total Dep.',
@@ -992,6 +975,7 @@ export class UserRecordsComponent implements OnInit {
               String(user.name ?? 'Unknown user'),
               String(user.usercode ?? user.user_id ?? '—'),
               [
+                cell(String(user.user_id ?? user.id ?? '—'), 'muted'),
                 cell(date(user.joined_at)),
                 cell(
                   `${money(user.used_this_month)} / ${money(user.deposit_limit)}`,
@@ -1139,7 +1123,9 @@ export class UserRecordsComponent implements OnInit {
               const planKey = plan.toLowerCase().startsWith('3')
                 ? 'three-month'
                 : 'one-month';
-              const status = String(subscription.status ?? 'unknown').toLowerCase();
+              const status = String(
+                subscription.status ?? 'unknown',
+              ).toLowerCase();
               const daysLeft = Number(subscription.days_left);
               const expiring =
                 status !== 'expired' && daysLeft >= 0 && daysLeft <= 7;
@@ -1167,7 +1153,11 @@ export class UserRecordsComponent implements OnInit {
                 String(subscription.name ?? 'Unknown user'),
                 String(subscription.usercode ?? subscription.user_id ?? '—'),
                 [
-                  cell(plan, planKey === 'three-month' ? 'violet' : 'blue', true),
+                  cell(
+                    plan,
+                    planKey === 'three-month' ? 'violet' : 'blue',
+                    true,
+                  ),
                   cell(date(subscription.started_at)),
                   cell(date(subscription.expires_at), expiryTone),
                   cell(
@@ -1542,11 +1532,7 @@ export class UserRecordsComponent implements OnInit {
                   flagLabels.length ? flagLabels.join(' · ') : '—',
                   overdue || hasBalance ? 'warning' : 'muted',
                 ),
-                cell(
-                  statusLabel,
-                  statusTone,
-                  true,
-                ),
+                cell(statusLabel, statusTone, true),
               ],
               filters,
             );
@@ -1606,7 +1592,9 @@ export class UserRecordsComponent implements OnInit {
   get activeServerPagination() {
     if (this.isConsentView) return this.consentPagination;
     if (this.isDeletedView) return this.deletedPagination;
-    return this.isSubscriptionView ? this.subscriptionPagination : this.studentPagination;
+    return this.isSubscriptionView
+      ? this.subscriptionPagination
+      : this.studentPagination;
   }
 
   get serverRangeLabel(): string {
@@ -1622,7 +1610,8 @@ export class UserRecordsComponent implements OnInit {
     if (!pagination || pagination.page <= 1) return;
     if (this.isConsentView) this.loadConsents(pagination.page - 1);
     else if (this.isDeletedView) this.loadDeletedAccounts(pagination.page - 1);
-    else if (this.isSubscriptionView) this.loadSubscriptions(pagination.page - 1);
+    else if (this.isSubscriptionView)
+      this.loadSubscriptions(pagination.page - 1);
     else this.loadStudents(pagination.page - 1);
   }
 
@@ -1631,7 +1620,8 @@ export class UserRecordsComponent implements OnInit {
     if (!pagination || pagination.page >= pagination.totalPages) return;
     if (this.isConsentView) this.loadConsents(pagination.page + 1);
     else if (this.isDeletedView) this.loadDeletedAccounts(pagination.page + 1);
-    else if (this.isSubscriptionView) this.loadSubscriptions(pagination.page + 1);
+    else if (this.isSubscriptionView)
+      this.loadSubscriptions(pagination.page + 1);
     else this.loadStudents(pagination.page + 1);
   }
 

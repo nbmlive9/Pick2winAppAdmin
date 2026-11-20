@@ -20,6 +20,9 @@ export interface RgCell {
 export interface RgRow {
   name: string;
   id: string;
+  userId?: string | number;
+  depositLimit?: number;
+  limitRequestId?: string | number;
   cells: RgCell[];
   filters: string[];
   highlight?: boolean;

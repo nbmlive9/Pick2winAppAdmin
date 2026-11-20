@@ -4,14 +4,13 @@
       <div class="revenue-glow"></div>
       <div class="revenue-main">
         <div class="revenue-copy">
-          <span class="eyebrow">Net Operator Revenue · MTD</span>
-          <strong class="revenue-value">£284,612.40</strong>
+          <span class="eyebrow">Net Operator Revenue · {{ operatorRangeLabel }}</span>
+          <strong class="revenue-value">{{ operatorRevenue }}</strong>
           <div class="revenue-meta">
-            <span class="pill pill-green"><i></i>↑ 8.2% vs last month</span>
-            <span class="supporting-text">Target £312K · 91% achieved</span>
+            <span class="supporting-text">{{ screenDescription }}</span>
           </div>
         </div>
-        <svg class="revenue-chart" viewBox="0 0 460 120" preserveAspectRatio="none" role="img" aria-label="Monthly operator revenue trend">
+        <svg *ngIf="dailyBars.length" class="revenue-chart" viewBox="0 0 460 120" preserveAspectRatio="none" role="img" aria-label="Daily net operator flow">
           <defs>
             <linearGradient id="revenueFill" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0" stop-color="#ff3b47" stop-opacity=".24"></stop>
@@ -22,49 +21,47 @@
             <line x1="0" y1="10" x2="460" y2="10"></line><line x1="0" y1="42" x2="460" y2="42"></line>
             <line x1="0" y1="74" x2="460" y2="74"></line><line x1="0" y1="106" x2="460" y2="106"></line>
           </g>
-          <path d="M0 79 L30 78 L60 80 L90 76 L120 68 L150 66 L180 62 L210 58 L240 55 L270 50 L300 44 L330 38 L360 31 L390 29 L420 25 L460 22 L460 120 L0 120 Z" fill="url(#revenueFill)"></path>
-          <polyline points="0,79 30,78 60,80 90,76 120,68 150,66 180,62 210,58 240,55 270,50 300,44 330,38 360,31 390,29 420,25 460,22"></polyline>
+          <polyline [attr.points]="revenueLinePoints"></polyline>
         </svg>
       </div>
       <div class="revenue-stats">
-        <div><span>Platform Fees</span><strong>£198K</strong><small>+6%</small></div>
-        <div><span>Subscriptions</span><strong>£94K</strong><small>+12%</small></div>
-        <div><span>Stripe Fees</span><strong class="negative">−£18.2K</strong><small>+4%</small></div>
-        <div><span>Sumsub Costs</span><strong class="negative">−£4.6K</strong><small>+1%</small></div>
-        <div><span>Bonus Expense</span><strong class="negative">−£42K</strong><small>−8%</small></div>
+        <div *ngFor="let stat of revenueStats"><span>{{ stat.label }}</span><strong [class.negative]="stat.negative">{{ stat.value }}</strong><small *ngIf="stat.detail">{{ stat.detail }}</small></div>
       </div>
+      <p *ngIf="errorNotice" class="notice" role="alert">{{ errorNotice }}</p>
     </article>
 
     <article class="panel composition-panel">
-      <div class="panel-title-row"><h2>Fund Composition</h2><span class="soft-pill">Total £5.86M</span></div>
-      <div class="donut-wrap"><div class="fund-donut"><strong>£5.86M</strong></div></div>
+      <div class="panel-title-row"><h2>Fund Composition</h2><span class="soft-pill">Total {{ fundCompositionTotal }}</span></div>
+      <div class="donut-wrap"><div class="fund-donut" [style.background]="fundDonutBackground"><strong>{{ fundCompositionTotal }}</strong></div></div>
       <div class="fund-legend">
         <div *ngFor="let segment of fundSegments">
           <i [style.background]="segment.color"></i><span>{{ segment.label }}</span><strong>{{ segment.value }}</strong>
         </div>
       </div>
+      <div class="fund-extra-stats"><div *ngFor="let item of fundExtraStats"><span>{{ item.label }}</span><strong>{{ item.value }}</strong></div></div>
     </article>
 
     <article class="panel daily-panel">
       <div class="panel-title-row">
-        <div><h2>Deposits vs Withdrawals · Daily</h2><p>Net flow £806K this month</p></div>
+        <div><h2>Deposits vs Withdrawals · Daily</h2><p>{{ operatorRangeLabel }}</p></div>
         <div class="chart-legend">
           <span><i class="legend-blue"></i>Deposits</span><span><i class="legend-red"></i>Withdrawals</span><span><i class="legend-green"></i>Net</span>
         </div>
       </div>
-      <div class="bar-chart" role="img" aria-label="Daily deposits and withdrawals">
+      <div class="bar-chart" role="img" aria-label="Daily deposits and withdrawals" *ngIf="dailyBars.length; else noDailyFlow">
         <div class="bar-column" *ngFor="let bar of dailyBars">
-          <span class="bar" [class.bar-highlight]="bar.highlight" [style.height.%]="bar.value"></span>
+          <div class="bar-group"><span class="bar legend-blue" [style.height.%]="bar.depositsPct"></span><span class="bar legend-red" [style.height.%]="bar.withdrawalsPct"></span><span class="bar legend-green" [style.height.%]="bar.netPct"></span></div>
           <small>{{ bar.label }}</small>
         </div>
       </div>
+      <ng-template #noDailyFlow><p class="empty-state">No daily flow data was returned.</p></ng-template>
     </article>
 
-    <app-wallet-cost-analytics></app-wallet-cost-analytics>
+    <app-wallet-cost-analytics [costs]="operatorCosts" [rangeLabel]="operatorRangeLabel"></app-wallet-cost-analytics>
 
     <article class="panel table-panel recent-panel">
       <header class="table-heading">
-        <div><h2>Recent Transactions</h2><p>2,481 today · £312K volume</p></div>
+        <div><h2>Recent Transactions</h2><p>{{ screenDescription }}</p></div>
         <div class="filter-list" role="group" aria-label="Recent transaction filters">
           <button *ngFor="let filter of page.filters" type="button" class="filter-chip"
             [class.filter-active]="activeFilter === filter.key" [attr.aria-pressed]="activeFilter === filter.key"
@@ -74,17 +71,18 @@
       <p *ngIf="notice" class="notice" role="status">{{ notice }}</p>
       <div class="table-scroll">
         <table class="wallet-table">
-          <thead><tr><th>Txn ID</th><th>User</th><th>Type</th><th>Method</th><th>Amount</th><th>Fee</th><th>Net</th><th>Time</th><th>Status</th></tr></thead>
+          <thead><tr><th>Txn ID</th><th>User</th><th>Type</th><th>Wallet</th><th>Amount</th><th>Balance After</th><th>Reference</th><th>Time</th><th>Status</th></tr></thead>
           <tbody>
             <tr *ngFor="let row of filteredRecentTransactions">
               <td class="mono">{{ row.id }}</td>
-              <td><span class="person-cell"><i class="avatar">{{ row.initials }}</i>{{ row.user }}</span></td>
+              <td><span class="person-cell"><i class="avatar">{{ row.initials }}</i><span>{{ row.user }}<small>{{ row.uid }}</small></span></span></td>
               <td><span class="type-label" [ngClass]="'tone-' + typeTone(row.type)"><i></i>{{ row.type }}</span></td>
               <td class="mono muted-cell">{{ row.method }}</td><td class="mono strong-cell">{{ row.amount }}</td>
-              <td class="mono muted-cell">{{ row.fee }}</td><td class="mono positive-cell">{{ row.net }}</td>
+              <td class="mono muted-cell">{{ row.balanceAfter || '—' }}</td><td class="mono muted-cell">{{ row.reference || '—' }}</td>
               <td class="mono muted-cell">{{ row.time }}</td><td><span class="status-pill" [ngClass]="'status-' + row.status.toLowerCase().replace(' ', '-')"><i></i>{{ row.status }}</span></td>
             </tr>
-            <tr *ngIf="filteredRecentTransactions.length === 0"><td colspan="9" class="empty-state">No matching transactions.</td></tr>
+            <tr *ngIf="loading"><td colspan="9" class="empty-state">Loading recent transactions…</td></tr>
+            <tr *ngIf="!loading && filteredRecentTransactions.length === 0"><td colspan="9" class="empty-state">No matching transactions.</td></tr>
           </tbody>
         </table>
       </div>
@@ -100,10 +98,10 @@
       <header class="table-heading">
         <div class="table-heading-copy">
           <ng-container [ngSwitch]="view">
-            <div *ngSwitchCase="'deposits'"><h2>Deposit Transactions — Today</h2><p>Real-time · sorted by most recent</p></div>
-            <div *ngSwitchCase="'transactions'"><h2>Transaction Ledger</h2><p>All money movements · real-time · immutable</p></div>
-            <div *ngSwitchCase="'user-funds'"><h2>User Fund Balances</h2><p>Real balances · sorted by amount · all user types</p></div>
-            <div *ngSwitchDefault><h2>Inactive Funds Register</h2><p>UK regs: notify at 12mo · transfer to UKGC at 7yr</p></div>
+            <div *ngSwitchCase="'deposits'"><h2>Deposit Transactions</h2><p>{{ screenDescription }}</p></div>
+            <div *ngSwitchCase="'transactions'"><h2>Transaction Ledger</h2><p>{{ screenDescription }}</p></div>
+            <div *ngSwitchCase="'user-funds'"><h2>User Fund Balances</h2><p>{{ screenDescription }}</p></div>
+            <div *ngSwitchDefault><h2>Inactive Funds Register</h2><p>{{ screenDescription }}</p></div>
           </ng-container>
         </div>
         <div class="filter-list" role="group" aria-label="Wallet record filters">
@@ -113,50 +111,54 @@
         </div>
       </header>
       <p *ngIf="notice" class="notice" role="status">{{ notice }}</p>
+      <p *ngIf="errorNotice" class="notice" role="alert">{{ errorNotice }}</p>
       <div class="table-scroll" [ngSwitch]="view">
         <table *ngSwitchCase="'deposits'" class="wallet-table">
-          <thead><tr><th>User</th><th>Amount</th><th>Method</th><th>PSP</th><th>Time</th><th>KYC</th><th>Fee</th><th>Status</th></tr></thead>
+          <thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Transaction ID</th><th>PSP</th><th>Time</th><th>KYC</th><th>Fee</th><th>Status</th></tr></thead>
           <tbody>
-            <tr *ngFor="let row of filteredDeposits; trackBy: trackById">
+            <tr *ngFor="let row of filteredDeposits; trackBy: trackByDeposit">
               <td><span class="person-cell"><i class="avatar avatar-teal">{{ row.initials }}</i><span>{{ row.user }}<small>{{ row.id }}</small></span></span></td>
               <td class="mono strong-cell">{{ row.amount }}</td><td class="mono muted-cell">{{ row.method }}</td>
-              <td>{{ row.provider }}</td><td class="mono muted-cell">{{ row.time }}</td>
-              <td><span class="status-pill" [ngClass]="row.kyc === 'KYC1' ? 'status-success' : 'status-warning'">{{ row.kyc }}</span></td>
+              <td class="mono muted-cell">{{ row.transactionId || '—' }}</td><td>{{ row.provider }}</td><td class="mono muted-cell">{{ row.time }}</td>
+              <td><span class="status-pill" [ngClass]="row.kyc === 'KYC1' || row.kyc === 'Approved' ? 'status-success' : 'status-warning'">{{ row.kyc }}</span></td>
               <td class="mono muted-cell">{{ row.fee }}</td>
               <td><span class="status-pill" [ngClass]="row.status === 'Failed' ? 'status-failed' : row.status === 'Flagged' ? 'status-warning' : 'status-success'"><i></i>{{ row.status }}</span></td>
             </tr>
-            <tr *ngIf="filteredDeposits.length === 0"><td colspan="8" class="empty-state">No matching deposits.</td></tr>
+            <tr *ngIf="loading"><td colspan="9" class="empty-state">Loading deposits…</td></tr>
+            <tr *ngIf="!loading && filteredDeposits.length === 0"><td colspan="9" class="empty-state">No matching deposits.</td></tr>
           </tbody>
         </table>
 
         <table *ngSwitchCase="'transactions'" class="wallet-table">
-          <thead><tr><th>Txn ID</th><th>User</th><th>Type</th><th>Amount</th><th>Balance After</th><th>Time</th><th>Reference</th><th>Status</th></tr></thead>
+          <thead><tr><th>Txn ID</th><th>User</th><th>Type</th><th>Amount</th><th>Balance Before</th><th>Balance After</th><th>Time</th><th>Reference</th><th>Status</th></tr></thead>
           <tbody>
             <tr *ngFor="let row of filteredLedger; trackBy: trackById">
               <td class="mono link-cell">{{ row.id }}</td>
               <td><span class="person-cell"><i class="avatar avatar-teal">{{ row.initials }}</i><span>{{ row.user }}<small>{{ row.uid }}</small></span></span></td>
               <td><span class="type-pill" [ngClass]="'tone-' + typeTone(row.type)">{{ row.type }}</span></td>
               <td class="mono strong-cell" [class.positive-cell]="row.amount.startsWith('+')" [class.negative-cell]="row.amount.startsWith('−')">{{ row.amount }}</td>
-              <td class="mono strong-cell">{{ row.balance }}</td><td class="mono muted-cell">{{ row.time }}</td>
+              <td class="mono muted-cell">{{ row.balanceBefore || '—' }}</td><td class="mono strong-cell">{{ row.balance }}</td><td class="mono muted-cell">{{ row.time }}</td>
               <td class="mono muted-cell">{{ row.reference }}</td>
               <td><span class="status-pill" [ngClass]="row.status === 'Flagged' ? 'status-warning' : row.status === 'Pending' ? 'status-warning' : 'status-success'"><i></i>{{ row.status }}</span></td>
             </tr>
-            <tr *ngIf="filteredLedger.length === 0"><td colspan="8" class="empty-state">No matching ledger entries.</td></tr>
+            <tr *ngIf="loading"><td colspan="9" class="empty-state">Loading transactions…</td></tr>
+            <tr *ngIf="!loading && filteredLedger.length === 0"><td colspan="9" class="empty-state">No matching ledger entries.</td></tr>
           </tbody>
         </table>
 
         <table *ngSwitchCase="'user-funds'" class="wallet-table">
-          <thead><tr><th>User</th><th>Balance</th><th>Bonus Balance</th><th>Pending W/D</th><th>Last Deposit</th><th>Last Withdrawal</th><th>KYC</th><th>Flag</th></tr></thead>
+          <thead><tr><th>User</th><th>Balance</th><th>Deposit Balance</th><th>Winning Balance</th><th>Bonus Balance</th><th>Pending W/D</th><th>Last Deposit</th><th>Last Withdrawal</th><th>KYC</th><th>Flag</th></tr></thead>
           <tbody>
             <tr *ngFor="let row of filteredFunds" [class.row-alert]="row.flag === 'AML flag'">
               <td><span class="person-cell"><i class="avatar avatar-teal">{{ row.initials }}</i><span>{{ row.user }}<small>{{ row.id }}</small></span></span></td>
-              <td class="mono strong-cell">{{ row.balance }}</td><td class="mono" [class.muted-cell]="row.bonus === '£0.00'" [class.amber-cell]="row.bonus !== '£0.00'">{{ row.bonus }}</td>
+              <td class="mono strong-cell">{{ row.balance }}</td><td class="mono">{{ row.depositBalance || '—' }}</td><td class="mono">{{ row.winningBalance || '—' }}</td><td class="mono" [class.muted-cell]="row.bonus === '£0.00'" [class.amber-cell]="row.bonus !== '£0.00'">{{ row.bonus }}</td>
               <td class="mono" [class.muted-cell]="row.withdrawal === '£0.00'" [class.negative-cell]="row.withdrawal !== '£0.00'">{{ row.withdrawal }}</td>
               <td class="mono muted-cell">{{ row.depositDate }}</td><td class="mono muted-cell">{{ row.withdrawalDate }}</td>
-              <td><span class="status-pill" [ngClass]="row.kyc === 'KYC1' ? 'status-success' : 'status-warning'">{{ row.kyc }}</span></td>
+              <td><span class="status-pill" [ngClass]="row.kyc === 'KYC1' || row.kyc === 'Approved' ? 'status-success' : 'status-warning'">{{ row.kyc }}</span></td>
               <td><span *ngIf="row.flag" class="status-pill" [ngClass]="row.flag === 'AML flag' ? 'status-failed' : 'status-warning'">{{ row.flag }}</span></td>
             </tr>
-            <tr *ngIf="filteredFunds.length === 0"><td colspan="8" class="empty-state">No matching balances.</td></tr>
+            <tr *ngIf="loading"><td colspan="10" class="empty-state">Loading user balances…</td></tr>
+            <tr *ngIf="!loading && filteredFunds.length === 0"><td colspan="10" class="empty-state">No matching balances.</td></tr>
           </tbody>
         </table>
 
@@ -164,7 +166,7 @@
           <thead><tr><th>User</th><th>Balance</th><th>Last Activity</th><th>Inactive For</th><th>Notifications</th><th>Transfer Due</th><th>Status</th><th></th></tr></thead>
           <tbody>
             <tr *ngFor="let row of filteredInactiveRows; trackBy: trackById" [class.row-alert]="row.state === 'transfer-due'">
-              <td><span class="person-cell"><i class="avatar avatar-unknown">?</i><span>[Unclaimed]<small>{{ row.id }}</small></span></span></td>
+              <td><span class="person-cell"><i class="avatar avatar-unknown">{{ (row.user || '[Unclaimed]').startsWith('[') ? '?' : (row.user || '').charAt(0).toUpperCase() }}</i><span>{{ row.user || '[Unclaimed]' }}<small>{{ row.id }}</small></span></span></td>
               <td class="mono strong-cell" [class.negative-cell]="row.state === 'transfer-due'">{{ row.balance }}</td>
               <td class="mono muted-cell">{{ row.lastActivity }}</td>
               <td class="mono" [class.negative-cell]="row.state === 'transfer-due'" [class.amber-cell]="row.state === 'near-transfer'">{{ row.inactiveFor }}</td>
@@ -176,10 +178,17 @@
                 {{ row.state === 'transfer-due' ? 'Transfer to UKGC' : 'Send Reminder' }}
               </button></td>
             </tr>
-            <tr *ngIf="filteredInactiveRows.length === 0"><td colspan="8" class="empty-state">No matching inactive funds.</td></tr>
+            <tr *ngIf="loading"><td colspan="8" class="empty-state">Loading inactive funds…</td></tr>
+            <tr *ngIf="!loading && filteredInactiveRows.length === 0"><td colspan="8" class="empty-state">No matching inactive funds.</td></tr>
           </tbody>
         </table>
       </div>
+      <footer class="wallet-pagination" *ngIf="pagination">
+        <span>{{ pageRangeLabel }}</span>
+        <button type="button" (click)="previousPage()" [disabled]="pagination.page <= 1">Previous</button>
+        <span>Page {{ pagination.page }} of {{ pagination.totalPages }}</span>
+        <button type="button" (click)="nextPage()" [disabled]="pagination.page >= pagination.totalPages">Next</button>
+      </footer>
     </section>
   </ng-template>
 </div>

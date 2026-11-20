@@ -102,3 +102,11 @@ h2 {
     min-height: 230px;
   }
 }
+.cost-range,
+.cost-empty {
+  margin: 0;
+  color: #7a839e;
+  font-size: 12px;
+}
+
+.cost-empty { padding: 14px 0; }

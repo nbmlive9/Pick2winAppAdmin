@@ -227,8 +227,9 @@
           {{ rgPage.page.primaryAction }}
         </button>
         <button class="topbar-button" type="button" [class.topbar-primary]="true"
+          [disabled]="rgPage.isApplyingDueLimitChanges"
           (click)="rgPage.handleTopbarAction('secondary')">
-          {{ rgPage.page.secondaryAction }}
+          {{ rgPage.isApplyingDueLimitChanges ? 'Applying…' : rgPage.page.secondaryAction }}
         </button>
       </div>
       <div class="topbar-actions" *ngIf="activeRgMonitorPage as rgMonitor">
@@ -243,8 +244,20 @@
       <div class="topbar-actions" *ngIf="activeUserProfile as userProfile">
         <button class="topbar-button" type="button" (click)="userProfile.showAction('Impersonation')">Impersonate</button>
         <button class="topbar-button" type="button" (click)="userProfile.showAction('Re-consent')">Force Re-consent</button>
-        <button class="topbar-button topbar-primary" type="button" (click)="userProfile.showAction('Account suspension')">
-          Suspend Account
+        <button class="topbar-button topbar-primary" type="button"
+          [disabled]="userProfile.suspendSubmitting || userProfile.unsuspendSubmitting"
+          (click)="userProfile.suspensionState ? userProfile.unsuspendUser() : userProfile.suspendUser()">
+          {{ userProfile.suspensionState ? 'Unsuspend Account' : 'Suspend Account' }}
+        </button>
+        <button class="topbar-button topbar-primary" type="button"
+          [disabled]="userProfile.deleteSubmitting"
+          (click)="userProfile.deleteUser()">
+          {{ userProfile.deleteSubmitting ? 'Deleting…' : 'Delete Account' }}
+        </button>
+        <button class="topbar-button" type="button"
+          [disabled]="userProfile.erasureSubmitting"
+          (click)="userProfile.toggleErasureForm()">
+          Mark Account Erased
         </button>
       </div>
       <div class="topbar-actions" *ngIf="activeWalletPage as walletPage">

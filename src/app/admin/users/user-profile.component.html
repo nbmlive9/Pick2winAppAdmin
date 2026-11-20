@@ -1,8 +1,47 @@
 <div class="user-profile-page">
+  <div
+    class="account-action-feedback"
+    *ngIf="erasureError || erasureSuccess || deleteError || deleteSuccess || suspendError || unsuspendError || suspendSuccess || unsuspendSuccess"
+    [class.feedback-error]="erasureError || deleteError || suspendError || unsuspendError"
+    [class.feedback-success]="!erasureError && !deleteError && !suspendError && !unsuspendError"
+    [attr.role]="erasureError || deleteError || suspendError || unsuspendError ? 'alert' : 'status'"
+    aria-live="polite"
+  >
+    <span class="feedback-icon" aria-hidden="true">{{ erasureError || deleteError || suspendError || unsuspendError ? '!' : '✓' }}</span>
+    <span>{{ erasureError || erasureSuccess || deleteError || deleteSuccess || suspendError || unsuspendError || suspendSuccess || unsuspendSuccess }}</span>
+  </div>
+  <form class="erasure-form" *ngIf="showErasureForm" (submit)="submitAccountErasure($event)">
+    <label for="account-erasure-note">Erasure note</label>
+    <textarea
+      id="account-erasure-note"
+      name="note"
+      rows="2"
+      maxlength="1000"
+      required
+      [value]="erasureNote"
+      (input)="erasureNote = $any($event.target).value"
+      placeholder="Enter the reason for marking this account erased"
+    ></textarea>
+    <div class="erasure-form-actions">
+      <button type="button" class="button" (click)="toggleErasureForm()">Cancel</button>
+      <button type="submit" class="button erasure-submit" [disabled]="erasureSubmitting || !erasureNote.trim()">
+        {{ erasureSubmitting ? 'Submitting…' : 'Confirm erasure' }}
+      </button>
+    </div>
+  </form>
   <p class="action-notice" *ngIf="notice" role="status">{{ notice }}</p>
-  <button type="button" class="button retry-button" *ngIf="notice && userId && !loading" (click)="loadProfile()">Retry loading profile</button>
+  <button
+    type="button"
+    class="button retry-button"
+    *ngIf="notice && userId && !loading"
+    (click)="loadProfile()"
+  >
+    Retry loading profile
+  </button>
 
-  <section class="panel loading-panel" *ngIf="loading" role="status">Loading user profile…</section>
+  <section class="panel loading-panel" *ngIf="loading" role="status">
+    Loading user profile…
+  </section>
 
   <div class="profile-grid" *ngIf="data as profileData">
     <div class="left-column">
@@ -12,184 +51,632 @@
           <div class="identity-name">
             <div class="name-line">
               <h2>{{ profile.name || 'Unknown user' }}</h2>
-              <span class="pill violet">{{ profileData.tier || profile.category || 'Unassigned' }}</span>
-              <span class="pill" [class.green]="profile.account_status === 'active'">{{ profile.account_status || 'Unknown status' }}</span>
+              <span class="pill violet">{{
+                profileData.tier || profile.category || 'Unassigned'
+              }}</span>
+              <span
+                class="pill"
+                [class.green]="profile.account_status === 'active'"
+                >{{ profile.account_status || 'Unknown status' }}</span
+              >
             </div>
-            <p>{{ profile.usercode || profile.id }} · joined {{ formatDate(profile.created_at) }}</p>
+            <p>
+              {{ profile.usercode || profile.id }} · joined
+              {{ formatDate(profile.created_at) }}
+            </p>
           </div>
         </div>
         <div class="verification-list">
-          <span class="pill" [class.green]="profileData.badges?.kyc_status === 'approved'">
-            KYC {{ (profileData.badges?.kyc_status || profile.kyc_status || 'unknown').replace('_', ' ') }}
+          <span
+            class="pill"
+            [class.green]="profileData.badges?.kyc_status === 'approved'"
+          >
+            KYC
+            {{
+              (
+                profileData.badges?.kyc_status ||
+                profile.kyc_status ||
+                'unknown'
+              ).replace('_', ' ')
+            }}
           </span>
-          <span class="pill" [class.green]="profileData.badges?.aml_risk === 'low'">AML {{ profileData.badges?.aml_risk || 'unknown' }}</span>
-          <span class="pill" [class.green]="isEnabled(profileData.badges?.sof_verified)">SoF {{ isEnabled(profileData.badges?.sof_verified) ? 'Verified' : 'Not verified' }}</span>
+          <span
+            class="pill"
+            [class.green]="profileData.badges?.aml_risk === 'low'"
+            >AML {{ profileData.badges?.aml_risk || 'unknown' }}</span
+          >
+          <span
+            class="pill"
+            [class.green]="isEnabled(profileData.badges?.sof_verified)"
+            >SoF
+            {{
+              isEnabled(profileData.badges?.sof_verified)
+                ? 'Verified'
+                : 'Not verified'
+            }}</span
+          >
           <span class="pill blue">{{ profile.category || 'No category' }}</span>
-          <span class="pill amber" *ngIf="isEnabled(profile.is_blocked)">Blocked</span>
+          <span class="pill amber" *ngIf="isEnabled(profile.is_blocked)"
+            >Blocked</span
+          >
         </div>
         <dl class="personal-details">
-          <div><dt>Date of birth</dt><dd>{{ formatDate(profile.dob) }}</dd></div>
-          <div><dt>Gender</dt><dd>{{ profile.gender || 'Not provided' }}</dd></div>
-          <div><dt>Email</dt><dd>{{ profile.email || 'Not provided' }} <b *ngIf="isEnabled(profile.email_verify)">Verified</b></dd></div>
-          <div><dt>Phone</dt><dd>{{ profile.mobile || 'Not provided' }} <b *ngIf="isEnabled(profile.mobile_verify)">Verified</b></dd></div>
-          <div><dt>Region</dt><dd>{{ profile.region || 'Not provided' }}</dd></div>
-          <div><dt>Address</dt><dd>{{ profile.address || 'Not provided' }}</dd></div>
-          <div><dt>Referral ID</dt><dd>{{ profile.referralid || '—' }}</dd></div>
-          <div><dt>Last login</dt><dd>{{ formatDateTime(profile.current_login || profile.last_login) }}</dd></div>
-          <div><dt>Last login IP</dt><dd>{{ profile.current_login_ip || profile.last_login_ip || '—' }}</dd></div>
+          <div>
+            <dt>Date of birth</dt>
+            <dd>{{ formatDate(profile.dob) }}</dd>
+          </div>
+          <div>
+            <dt>Gender</dt>
+            <dd>{{ profile.gender || 'Not provided' }}</dd>
+          </div>
+          <div>
+            <dt>Email</dt>
+            <dd>
+              {{ profile.email || 'Not provided' }}
+              <b *ngIf="isEnabled(profile.email_verify)">Verified</b>
+            </dd>
+          </div>
+          <div>
+            <dt>Phone</dt>
+            <dd>
+              {{ profile.mobile || 'Not provided' }}
+              <b *ngIf="isEnabled(profile.mobile_verify)">Verified</b>
+            </dd>
+          </div>
+          <div>
+            <dt>Region</dt>
+            <dd>{{ profile.region || 'Not provided' }}</dd>
+          </div>
+          <div>
+            <dt>Address</dt>
+            <dd>{{ profile.address || 'Not provided' }}</dd>
+          </div>
+          <div>
+            <dt>Referral ID</dt>
+            <dd>{{ profile.referralid || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Last login</dt>
+            <dd>
+              {{ formatDateTime(profile.current_login || profile.last_login) }}
+            </dd>
+          </div>
+          <div>
+            <dt>Last login IP</dt>
+            <dd>
+              {{ profile.current_login_ip || profile.last_login_ip || '—' }}
+            </dd>
+          </div>
         </dl>
       </section>
 
       <section class="panel account-panel">
         <h3>Subscription &amp; Preferences</h3>
         <dl class="personal-details">
-          <div><dt>Subscription plan</dt><dd>{{ profile.subscribe ? (profile.subscribepack || 'Active') : 'Not subscribed' }}</dd></div>
-          <div><dt>Subscription count</dt><dd>{{ number(profile.subscription_count) }}</dd></div>
-          <div><dt>Subscription started</dt><dd>{{ formatDate(profile.subscribestartdate) }}</dd></div>
-          <div><dt>Subscription ends</dt><dd>{{ formatDate(profile.subscribeenddate) }}</dd></div>
-          <div><dt>SMS notifications</dt><dd>{{ isEnabled(profile.sms_notifications ?? profile.smsnotification) ? 'On' : 'Off' }}</dd></div>
-          <div><dt>Email notifications</dt><dd>{{ isEnabled(profile.email_notifications ?? profile.emailnotification) ? 'On' : 'Off' }}</dd></div>
-          <div><dt>Push notifications</dt><dd>{{ isEnabled(profile.pushnotification) ? 'On' : 'Off' }}</dd></div>
-          <div><dt>Marketing messages</dt><dd>{{ isEnabled(profile.marketing_messages ?? profile.marketingnotification) ? 'On' : 'Off' }}</dd></div>
+          <div>
+            <dt>Subscription plan</dt>
+            <dd>
+              {{
+                profile.subscribe
+                  ? profile.subscribepack || 'Active'
+                  : 'Not subscribed'
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt>Subscription count</dt>
+            <dd>{{ number(profile.subscription_count) }}</dd>
+          </div>
+          <div>
+            <dt>Subscription started</dt>
+            <dd>{{ formatDate(profile.subscribestartdate) }}</dd>
+          </div>
+          <div>
+            <dt>Subscription ends</dt>
+            <dd>{{ formatDate(profile.subscribeenddate) }}</dd>
+          </div>
+          <div>
+            <dt>SMS notifications</dt>
+            <dd>
+              {{
+                isEnabled(profile.sms_notifications ?? profile.smsnotification)
+                  ? 'On'
+                  : 'Off'
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt>Email notifications</dt>
+            <dd>
+              {{
+                isEnabled(
+                  profile.email_notifications ?? profile.emailnotification
+                )
+                  ? 'On'
+                  : 'Off'
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt>Push notifications</dt>
+            <dd>{{ isEnabled(profile.pushnotification) ? 'On' : 'Off' }}</dd>
+          </div>
+          <div>
+            <dt>Marketing messages</dt>
+            <dd>
+              {{
+                isEnabled(
+                  profile.marketing_messages ?? profile.marketingnotification
+                )
+                  ? 'On'
+                  : 'Off'
+              }}
+            </dd>
+          </div>
         </dl>
       </section>
 
       <section class="panel wallet-panel">
         <h3>Wallet Snapshot</h3>
         <div class="wallet-row">
-          <div><span>Deposit Balance</span><strong>{{ money(profileData.wallet?.deposit_balance) }}</strong></div>
-          <div class="bar"><i class="bar-blue" [style.width.%]="percent(profileData.wallet?.deposit_balance, profileData.wallet?.total_balance)"></i></div>
+          <div>
+            <span>Deposit Balance</span
+            ><strong>{{ money(profileData.wallet?.deposit_balance) }}</strong>
+          </div>
+          <div class="bar">
+            <i
+              class="bar-blue"
+              [style.width.%]="
+                percent(
+                  profileData.wallet?.deposit_balance,
+                  profileData.wallet?.total_balance
+                )
+              "
+            ></i>
+          </div>
         </div>
         <div class="wallet-row">
-          <div><span>Winnings Balance</span><strong>{{ money(profileData.wallet?.winning_balance) }}</strong></div>
-          <div class="bar"><i class="bar-green" [style.width.%]="percent(profileData.wallet?.winning_balance, profileData.wallet?.total_balance)"></i></div>
+          <div>
+            <span>Winnings Balance</span
+            ><strong>{{ money(profileData.wallet?.winning_balance) }}</strong>
+          </div>
+          <div class="bar">
+            <i
+              class="bar-green"
+              [style.width.%]="
+                percent(
+                  profileData.wallet?.winning_balance,
+                  profileData.wallet?.total_balance
+                )
+              "
+            ></i>
+          </div>
         </div>
         <div class="wallet-row">
-          <div><span>Bonus Balance</span><strong>{{ money(profileData.wallet?.bonus_balance) }}</strong></div>
-          <div class="bar"><i class="bar-violet" [style.width.%]="percent(profileData.wallet?.bonus_balance, profileData.wallet?.total_balance)"></i></div>
+          <div>
+            <span>Bonus Balance</span
+            ><strong>{{ money(profileData.wallet?.bonus_balance) }}</strong>
+          </div>
+          <div class="bar">
+            <i
+              class="bar-violet"
+              [style.width.%]="
+                percent(
+                  profileData.wallet?.bonus_balance,
+                  profileData.wallet?.total_balance
+                )
+              "
+            ></i>
+          </div>
         </div>
         <div class="wallet-row">
-          <div><span>Locked Balance</span><strong>{{ money(profileData.wallet?.locked_balance) }}</strong></div>
-          <div class="bar"><i class="bar-amber" [style.width.%]="percent(profileData.wallet?.locked_balance, profileData.wallet?.total_balance)"></i></div>
+          <div>
+            <span>Locked Balance</span
+            ><strong>{{ money(profileData.wallet?.locked_balance) }}</strong>
+          </div>
+          <div class="bar">
+            <i
+              class="bar-amber"
+              [style.width.%]="
+                percent(
+                  profileData.wallet?.locked_balance,
+                  profileData.wallet?.total_balance
+                )
+              "
+            ></i>
+          </div>
         </div>
-        <div class="withdrawable"><span>Total Balance</span><strong>{{ money(profileData.wallet?.total_balance) }}</strong></div>
+        <div class="withdrawable">
+          <span>Total Balance</span
+          ><strong>{{ money(profileData.wallet?.total_balance) }}</strong>
+        </div>
       </section>
 
       <section class="panel devices-panel">
         <h3>Devices &amp; Login</h3>
         <article class="device-row" *ngFor="let device of devices">
-          <span class="device-icon">{{ (device.device_type || 'device').slice(0, 1).toUpperCase() }}</span>
+          <span class="device-icon">{{
+            (device.device_type || 'device').slice(0, 1).toUpperCase()
+          }}</span>
           <div>
-            <strong>{{ device.device_name || device.device_type || 'Unknown device' }}</strong>
-            <small>{{ device.device_type || 'Unknown type' }} · {{ device.login_method || 'Unknown login' }} · IP {{ device.ip_address || '—' }}</small>
+            <strong>{{
+              device.device_name || device.device_type || 'Unknown device'
+            }}</strong>
+            <small
+              >{{ device.device_type || 'Unknown type' }} ·
+              {{ device.login_method || 'Unknown login' }} · IP
+              {{ device.ip_address || '—' }}</small
+            >
             <small>Last login {{ formatDateTime(device.last_login_at) }}</small>
           </div>
-          <i class="online" *ngIf="isEnabled(device.is_active)" aria-label="Active device"></i>
+          <i
+            class="online"
+            *ngIf="isEnabled(device.is_active)"
+            aria-label="Active device"
+          ></i>
         </article>
-        <p class="empty-copy" *ngIf="devices.length === 0">No device records.</p>
+        <p class="empty-copy" *ngIf="devices.length === 0">
+          No device records.
+        </p>
       </section>
     </div>
 
     <div class="middle-column">
       <section class="quick-metrics" aria-label="Account totals">
-        <article class="panel mini-metric"><span>Total Deposits</span><strong>{{ money(profileData.financial_summary?.total_deposited) }}</strong></article>
-        <article class="panel mini-metric"><span>Total Winnings</span><strong>{{ money(profileData.financial_summary?.total_winnings) }}</strong></article>
-        <article class="panel mini-metric"><span>Net Amount</span><strong class="negative">{{ money(profileData.financial_summary?.net_amount) }}</strong></article>
-        <article class="panel mini-metric"><span>Contests Joined</span><strong>{{ number(profileData.contests?.contests_joined) }}</strong></article>
+        <article class="panel mini-metric">
+          <span>Total Deposits</span
+          ><strong>{{
+            money(profileData.financial_summary?.total_deposited)
+          }}</strong>
+        </article>
+        <article class="panel mini-metric">
+          <span>Total Winnings</span
+          ><strong>{{
+            money(profileData.financial_summary?.total_winnings)
+          }}</strong>
+        </article>
+        <article class="panel mini-metric">
+          <span>Net Amount</span
+          ><strong class="negative">{{
+            money(profileData.financial_summary?.net_amount)
+          }}</strong>
+        </article>
+        <article class="panel mini-metric">
+          <span>Contests Joined</span
+          ><strong>{{ number(profileData.contests?.contests_joined) }}</strong>
+        </article>
       </section>
 
       <section class="panel timeline-panel">
         <header class="panel-heading">
-          <div><h3>User Activity</h3><p>{{ number(profileData.activity?.total_activities) }} activities · last recorded {{ formatDateTime(profileData.activity?.last_activity_at) }}</p></div>
-          <select class="timeline-filter" aria-label="Filter timeline" [value]="timelineFilter" (change)="setTimelineFilter($event)">
+          <div>
+            <h3>User Activity</h3>
+            <p>
+              {{ number(profileData.activity?.total_activities) }} activities ·
+              last recorded
+              {{ formatDateTime(profileData.activity?.last_activity_at) }}
+            </p>
+          </div>
+          <select
+            class="timeline-filter"
+            aria-label="Filter timeline"
+            [value]="timelineFilter"
+            (change)="setTimelineFilter($event)"
+          >
             <option value="all">All activity</option>
             <option value="wallet">Wallet</option>
             <option value="contest">Contests</option>
             <option value="compliance">Account</option>
             <option value="consent">Consent</option>
           </select>
-          <button type="button" class="button button-quiet" (click)="showAction('Activity export')">Export</button>
+          <button
+            type="button"
+            class="button button-quiet"
+            (click)="showAction('Activity export')"
+          >
+            Export
+          </button>
         </header>
         <div class="timeline-list">
-          <article class="timeline-item" *ngFor="let event of filteredTimeline; let last = last" [class.last-event]="last">
+          <article
+            class="timeline-item"
+            *ngFor="let event of filteredTimeline; let last = last"
+            [class.last-event]="last"
+          >
             <time>{{ event.time }}</time>
             <span class="timeline-mark" [ngClass]="'mark-' + event.kind"></span>
-            <div class="event-copy"><div><strong>{{ event.title }}</strong></div><p>{{ event.description }}</p></div>
+            <div class="event-copy">
+              <div>
+                <strong>{{ event.title }}</strong>
+              </div>
+              <p>{{ event.description }}</p>
+            </div>
           </article>
-          <p class="empty-copy" *ngIf="filteredTimeline.length === 0">No matching activity records.</p>
+          <p class="empty-copy" *ngIf="filteredTimeline.length === 0">
+            No matching activity records.
+          </p>
         </div>
       </section>
 
       <section class="panel financial-panel">
         <h3>Financial Summary</h3>
         <dl class="personal-details">
-          <div><dt>Deposit count</dt><dd>{{ number(profileData.financial_summary?.deposit_count) }}</dd></div>
-          <div><dt>Total withdrawn</dt><dd>{{ money(profileData.financial_summary?.total_withdrawn) }}</dd></div>
-          <div><dt>Total bonus</dt><dd>{{ money(profileData.financial_summary?.total_bonus) }}</dd></div>
-          <div><dt>Total refunds</dt><dd>{{ money(profileData.financial_summary?.total_refunds) }}</dd></div>
-          <div><dt>Entry fees</dt><dd>{{ money(profileData.financial_summary?.total_entry_fees) }}</dd></div>
-          <div><dt>Net cash flow</dt><dd>{{ money(profileData.financial_summary?.net_cash_flow) }}</dd></div>
-          <div><dt>Withdrawals approved</dt><dd>{{ number(profileData.financial_summary?.withdrawals?.approved_count) }}</dd></div>
-          <div><dt>Withdrawals pending</dt><dd>{{ number(profileData.financial_summary?.withdrawals?.pending_count) }}</dd></div>
-          <div><dt>Withdrawals rejected</dt><dd>{{ number(profileData.financial_summary?.withdrawals?.rejected_count) }}</dd></div>
+          <div>
+            <dt>Deposit count</dt>
+            <dd>{{ number(profileData.financial_summary?.deposit_count) }}</dd>
+          </div>
+          <div>
+            <dt>Total withdrawn</dt>
+            <dd>{{ money(profileData.financial_summary?.total_withdrawn) }}</dd>
+          </div>
+          <div>
+            <dt>Total bonus</dt>
+            <dd>{{ money(profileData.financial_summary?.total_bonus) }}</dd>
+          </div>
+          <div>
+            <dt>Total refunds</dt>
+            <dd>{{ money(profileData.financial_summary?.total_refunds) }}</dd>
+          </div>
+          <div>
+            <dt>Entry fees</dt>
+            <dd>
+              {{ money(profileData.financial_summary?.total_entry_fees) }}
+            </dd>
+          </div>
+          <div>
+            <dt>Net cash flow</dt>
+            <dd>{{ money(profileData.financial_summary?.net_cash_flow) }}</dd>
+          </div>
+          <div>
+            <dt>Withdrawals approved</dt>
+            <dd>
+              {{
+                number(
+                  profileData.financial_summary?.withdrawals?.approved_count
+                )
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt>Withdrawals pending</dt>
+            <dd>
+              {{
+                number(
+                  profileData.financial_summary?.withdrawals?.pending_count
+                )
+              }}
+            </dd>
+          </div>
+          <div>
+            <dt>Withdrawals rejected</dt>
+            <dd>
+              {{
+                number(
+                  profileData.financial_summary?.withdrawals?.rejected_count
+                )
+              }}
+            </dd>
+          </div>
         </dl>
       </section>
     </div>
 
     <div class="right-column">
       <section class="panel responsible-panel">
-        <header class="section-title"><h3>Responsible Gaming</h3><span class="pill" [class.green]="profileData.responsible_gaming?.status === 'healthy'">{{ profileData.responsible_gaming?.status || 'Unknown' }}</span></header>
-        <div class="limit-heading"><span>Monthly Deposit Limit</span><strong>{{ money(profileData.deposit_limit?.used_this_month) }} / {{ money(profileData.deposit_limit?.monthly_limit) }}</strong></div>
-        <div class="limit-bar"><i [style.width.%]="percent(profileData.deposit_limit?.used_percent, 100)"></i></div>
-        <p class="limit-note">{{ number(profileData.deposit_limit?.used_percent) }}% used · {{ money(profileData.deposit_limit?.remaining) }} remaining · resets {{ formatDate(profileData.responsible_gaming?.limit_resets_on) }}</p>
+        <header class="section-title">
+          <h3>Responsible Gaming</h3>
+          <span
+            class="pill"
+            [class.green]="profileData.responsible_gaming?.status === 'healthy'"
+            >{{ profileData.responsible_gaming?.status || 'Unknown' }}</span
+          >
+        </header>
+        <div class="limit-heading">
+          <span>Monthly Deposit Limit</span
+          ><strong
+            >{{ money(profileData.deposit_limit?.used_this_month) }} /
+            {{ money(profileData.deposit_limit?.monthly_limit) }}</strong
+          >
+        </div>
+        <div class="limit-bar">
+          <i
+            [style.width.%]="
+              percent(profileData.deposit_limit?.used_percent, 100)
+            "
+          ></i>
+        </div>
+        <p class="limit-note">
+          {{ number(profileData.deposit_limit?.used_percent) }}% used ·
+          {{ money(profileData.deposit_limit?.remaining) }} remaining · resets
+          {{ formatDate(profileData.responsible_gaming?.limit_resets_on) }}
+        </p>
         <div class="rg-grid">
-          <article><span>Loss Months</span><strong>{{ number(profileData.responsible_gaming?.loss_months_12m) }}</strong><small>of 12</small></article>
-          <article><span>Limit Reductions</span><strong>{{ number(profileData.responsible_gaming?.limit_reduces) }}</strong><small>{{ number(profileData.responsible_gaming?.limit_reduces_allowed) }} allowed</small></article>
-          <article><span>Self Exclusion</span><strong>{{ profileData.responsible_gaming?.self_exclusion || 'None' }}</strong></article>
-          <article><span>RG Warnings</span><strong>{{ number(profileData.responsible_gaming?.rg_warnings) }}</strong></article>
+          <article>
+            <span>Loss Months</span
+            ><strong>{{
+              number(profileData.responsible_gaming?.loss_months_12m)
+            }}</strong
+            ><small>of 12</small>
+          </article>
+          <article>
+            <span>Limit Reductions</span
+            ><strong>{{
+              number(profileData.responsible_gaming?.limit_reduces)
+            }}</strong
+            ><small
+              >{{
+                number(profileData.responsible_gaming?.limit_reduces_allowed)
+              }}
+              allowed</small
+            >
+          </article>
+          <article>
+            <span>Self Exclusion</span
+            ><strong>{{
+              profileData.responsible_gaming?.self_exclusion || 'None'
+            }}</strong>
+          </article>
+          <article>
+            <span>RG Warnings</span
+            ><strong>{{
+              number(profileData.responsible_gaming?.rg_warnings)
+            }}</strong>
+          </article>
         </div>
         <h3>Monthly Deposit History</h3>
-        <div class="history-row" *ngFor="let month of profileData.deposit_limit?.monthly_history">
-          <span>{{ month.ym }}</span><strong>{{ money(month.total_added) }}</strong>
+        <div
+          class="history-row"
+          *ngFor="let month of profileData.deposit_limit?.monthly_history"
+        >
+          <span>{{ month.ym }}</span><strong>{{
+            money(month.total_added)
+          }}</strong>
         </div>
-        <p class="empty-copy" *ngIf="!profileData.deposit_limit?.monthly_history?.length">No monthly history.</p>
+        <p
+          class="empty-copy"
+          *ngIf="!profileData.deposit_limit?.monthly_history?.length"
+        >
+          No monthly history.
+        </p>
       </section>
 
       <section class="panel consent-panel">
         <h3>Consent Log</h3>
         <div class="consent-row" *ngFor="let consent of consents">
-          <i [class.checked]="isEnabled(consent.is_current)">{{ isEnabled(consent.is_current) ? '✓' : '' }}</i>
-          <span [title]="consent.policy">{{ consent.policy || 'Unknown policy' }}</span>
+          <i [class.checked]="isEnabled(consent.is_current)">{{
+            isEnabled(consent.is_current) ? '✓' : ''
+          }}</i>
+          <span [title]="consent.policy">{{
+            consent.policy || 'Unknown policy'
+          }}</span>
           <small>v{{ consent.version || '—' }}</small>
           <time>{{ formatDate(consent.accepted_at) }}</time>
         </div>
-        <p class="empty-copy" *ngIf="consents.length === 0">No consent records.</p>
+        <p class="empty-copy" *ngIf="consents.length === 0">
+          No consent records.
+        </p>
       </section>
 
       <section class="panel support-panel">
-        <header class="section-title"><h3>Support &amp; Reviews</h3><span>{{ number(profileData.support?.total) }} tickets</span></header>
-        <div class="support-row"><span>Pending</span><b class="pill amber">{{ number(profileData.support?.pending) }}</b></div>
-        <div class="support-row"><span>Opened</span><b>{{ number(profileData.support?.opened) }}</b></div>
-        <div class="support-row"><span>Reacted</span><b>{{ number(profileData.support?.reacted) }}</b></div>
-        <div class="support-row"><span>Resolved</span><b class="pill green">{{ number(profileData.support?.resolved) }}</b></div>
-        <div class="support-row"><span>Compliance cases</span><b>{{ complianceCases.length }}</b></div>
-        <div class="support-row"><span>Admin notes</span><b>{{ notesPagination?.total ?? adminNotes.length }}</b></div>
-        <button type="button" class="note-button" (click)="showAction('Admin note')">+ Add admin note</button>
+        <header class="section-title">
+          <h3>Support &amp; Reviews</h3>
+          <span>{{ number(profileData.support?.total) }} tickets</span>
+        </header>
+        <div class="support-row">
+          <span>Pending</span
+          ><b class="pill amber">{{ number(profileData.support?.pending) }}</b>
+        </div>
+        <div class="support-row">
+          <span>Opened</span><b>{{ number(profileData.support?.opened) }}</b>
+        </div>
+        <div class="support-row">
+          <span>Reacted</span><b>{{ number(profileData.support?.reacted) }}</b>
+        </div>
+        <div class="support-row">
+          <span>Resolved</span
+          ><b class="pill green">{{ number(profileData.support?.resolved) }}</b>
+        </div>
+        <div class="support-row">
+          <span>Compliance cases</span><b>{{ complianceCases.length }}</b>
+        </div>
+        <div class="support-row">
+          <span>Admin notes</span
+          ><b>{{ notesPagination?.total ?? adminNotes.length }}</b>
+        </div>
+        <button
+          type="button"
+          class="note-button"
+          (click)="toggleAddNoteForm()"
+          [attr.aria-expanded]="showAddNoteForm"
+        >
+          {{ showAddNoteForm ? 'Cancel admin note' : '+ Add admin note' }}
+        </button>
+        <form
+          class="admin-note-form"
+          *ngIf="showAddNoteForm"
+          (submit)="submitAdminNote($event)"
+        >
+          <label for="admin-note-input">Note</label>
+          <textarea
+            id="admin-note-input"
+            name="note"
+            rows="3"
+            maxlength="2000"
+            required
+            [value]="newAdminNote"
+            (input)="newAdminNote = $any($event.target).value"
+            placeholder="Write an internal note about this user"
+          ></textarea>
+          <button
+            type="submit"
+            class="button note-submit"
+            [disabled]="noteSubmitting || !newAdminNote.trim()"
+          >
+            {{ noteSubmitting ? 'Saving…' : 'Submit note' }}
+          </button>
+          <p
+            class="note-feedback note-error"
+            *ngIf="noteSubmitError"
+            role="alert"
+          >
+            {{ noteSubmitError }}
+          </p>
+        </form>
+        <p
+          class="note-feedback note-success"
+          *ngIf="noteSubmitSuccess"
+          role="status"
+        >
+          {{ noteSubmitSuccess }}
+        </p>
       </section>
 
       <section class="panel admin-notes-panel">
-        <header class="section-title"><h3>Admin Notes</h3><span>{{ notesPagination?.total ?? adminNotes.length }} total</span></header>
+        <header class="section-title">
+          <h3>Admin Notes</h3>
+          <span>{{ notesPagination?.total ?? adminNotes.length }} total</span>
+        </header>
         <p class="empty-copy" *ngIf="notesLoading">Loading notes…</p>
-        <p class="action-notice" *ngIf="notesNotice" role="status">{{ notesNotice }}</p>
+        <p class="action-notice" *ngIf="notesNotice" role="status">
+          {{ notesNotice }}
+        </p>
         <article class="admin-note" *ngFor="let note of userNotes">
           <p>{{ noteText(note) }}</p>
-          <small>{{ noteAuthor(note) }} · {{ formatDateTime(noteCreatedAt(note)) }}</small>
+          <small
+            >{{ noteAuthor(note) }} ·
+            {{ formatDateTime(noteCreatedAt(note)) }}</small
+          >
         </article>
-        <p class="empty-copy" *ngIf="!notesLoading && !notesNotice && userNotes.length === 0">No admin notes for this user.</p>
-        <footer class="notes-pagination" *ngIf="notesPagination && notesPagination.totalPages > 1">
-          <button type="button" class="button" (click)="previousUserNotesPage()" [disabled]="notesPagination.page <= 1">Previous</button>
-          <span>Page {{ notesPagination.page }} of {{ notesPagination.totalPages }}</span>
-          <button type="button" class="button" (click)="nextUserNotesPage()" [disabled]="notesPagination.page >= notesPagination.totalPages">Next</button>
+        <p
+          class="empty-copy"
+          *ngIf="!notesLoading && !notesNotice && userNotes.length === 0"
+        >
+          No admin notes for this user.
+        </p>
+        <footer
+          class="notes-pagination"
+          *ngIf="notesPagination && notesPagination.totalPages > 1"
+        >
+          <button
+            type="button"
+            class="button"
+            (click)="previousUserNotesPage()"
+            [disabled]="notesPagination.page <= 1"
+          >
+            Previous
+          </button>
+          <span
+            >Page {{ notesPagination.page }} of
+            {{ notesPagination.totalPages }}</span
+          >
+          <button
+            type="button"
+            class="button"
+            (click)="nextUserNotesPage()"
+            [disabled]="notesPagination.page >= notesPagination.totalPages"
+          >
+            Next
+          </button>
         </footer>
       </section>
     </div>

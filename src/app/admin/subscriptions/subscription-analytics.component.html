@@ -1,0 +1,24 @@
+<section class="subscription-page">
+  <div class="metric-grid"><app-ops-metric-card *ngFor="let metric of metrics" [metric]="metric"></app-ops-metric-card></div>
+  <p *ngIf="loading" role="status">Loading subscription data…</p>
+  <div *ngIf="error" role="alert">{{ error }} <button type="button" (click)="loadOverview()">Retry overview</button> <button type="button" (click)="loadTracking()">Retry tracking</button></div>
+  <div class="analytics-grid">
+    <section class="panel plan-panel"><header class="section-title"><div><h2>Plan Mix</h2><p>Active subscribers by plan</p></div></header>
+      <div class="plan-list"><article class="plan-card" *ngFor="let plan of planMix"><div class="plan-header"><div><h3>{{ plan?.plan || '—' }}</h3><p>{{ display(plan?.active) }} subscribers · {{ percent(plan?.share_pct) }}</p></div></div></article><p *ngIf="!planMix.length && !loading">No plan mix data.</p></div>
+      <p>MTD new: {{ display(newVsRenewal?.new) }} · renewals: {{ display(newVsRenewal?.renewal) }}</p>
+    </section>
+    <section class="panel revenue-panel"><header class="section-title revenue-title"><div><h2>Subscription Revenue</h2><p>Monthly values supplied by the API</p></div></header>
+      <div *ngIf="!revenueMonthly.length && !loading">No monthly revenue data.</div>
+      <pre *ngFor="let item of revenueMonthly">{{ item | json }}</pre>
+    </section>
+    <section class="panel renewals-panel"><header class="table-heading"><div><h2>Renewal &amp; Expiry Tracking</h2><p>{{ total }} records</p></div>
+      <div class="filter-chips"><button type="button" [class.selected]="filter === 'expiring'" (click)="setFilter('expiring')">Expiring (7d)</button><button type="button" [class.selected]="filter === ''" (click)="setFilter('')">All</button></div>
+      <input aria-label="Search subscriptions" placeholder="Search subscriptions" [value]="search" (input)="setSearch($event)">
+    </header><div class="table-scroll"><table class="subscriber-table"><thead><tr><th>Subscriber</th><th>Plan</th><th>Started</th><th>Expires</th><th>Auto-renew</th><th>Lifetime Spend</th><th>Engagement</th><th>Status</th></tr></thead>
+      <tbody><tr *ngFor="let subscriber of subscribers"><td><div class="subscriber"><span class="avatar">{{ initials(subscriber?.name) }}</span><span><strong>{{ subscriber?.name || '—' }}</strong><small>{{ subscriber?.usercode || subscriber?.user_id || '—' }}</small></span></div></td><td>{{ subscriber?.plan || '—' }}</td><td class="mono">{{ date(subscriber?.started_at) }}</td><td class="mono">{{ date(subscriber?.expires_at) }}</td><td>{{ subscriber?.auto_renew === true ? 'On' : subscriber?.auto_renew === false ? 'Off' : '—' }}</td><td>{{ subscriber?.lifetime_spend == null ? '—' : money(subscriber.lifetime_spend) }}</td><td>{{ display(subscriber?.engagement) }}</td><td>{{ subscriber?.status || '—' }}</td></tr>
+      <tr *ngIf="!loading && !subscribers.length"><td colspan="8">No subscription records found.</td></tr></tbody></table></div>
+      <footer><span>Page {{ page }} of {{ totalPages || 0 }} · {{ total }} records</span><button type="button" (click)="previousPage()" [disabled]="page <= 1 || loading">Previous</button><button type="button" (click)="nextPage()" [disabled]="page >= totalPages || loading">Next</button></footer>
+    </section>
+    <section class="panel cohort-panel"><h2>Cohort Retention</h2><p>Retention values returned by the API</p><div *ngIf="!cohorts.length && !loading">No cohort retention data.</div><pre *ngFor="let cohort of cohorts">{{ cohort | json }}</pre></section>
+  </div>
+</section>

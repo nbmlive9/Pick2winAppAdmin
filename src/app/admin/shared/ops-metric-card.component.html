@@ -7,7 +7,7 @@
   </div>
   <strong class="metric-value">{{ metric.value }}</strong>
   <p>{{ metric.detail }}</p>
-  <svg class="metric-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+  <svg *ngIf="metric.spark?.length" class="metric-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
     <polyline [attr.points]="points" [attr.stroke]="metric.color"></polyline>
   </svg>
 </article>

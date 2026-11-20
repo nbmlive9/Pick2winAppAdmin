@@ -5,7 +5,7 @@ export interface OpsMetric {
   value: string;
   detail: string;
   color: string;
-  spark: number[];
+  spark?: number[];
   change?: string;
   direction?: 'up' | 'down';
 }
@@ -19,7 +19,7 @@ export class OpsMetricCardComponent {
   @Input() metric!: OpsMetric;
 
   get points(): string {
-    const values = this.metric.spark;
+    const values = this.metric.spark ?? [];
     if (values.length < 2) return '';
     const min = Math.min(...values);
     const range = Math.max(...values) - min || 1;

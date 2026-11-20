@@ -1,0 +1,119 @@
+<section class="bonuses-page">
+  <div class="page-heading">
+    <div>
+      <h1>Bonus Overview</h1>
+      <p *ngIf="rangeLabel">API reporting range: {{ rangeLabel }}</p>
+    </div>
+    <span class="live-badge"><i></i> Live API data</span>
+  </div>
+
+  <div *ngIf="overviewLoading" class="state-message" role="status">Loading bonus overview…</div>
+  <div *ngIf="overviewError" class="state-message error-state" role="alert">
+    <span>{{ overviewError }}</span>
+    <button type="button" class="quiet-button" (click)="loadOverview()">Retry overview</button>
+  </div>
+  <div class="metric-grid" *ngIf="metrics.length">
+    <app-ops-metric-card *ngFor="let metric of metrics" [metric]="metric"></app-ops-metric-card>
+  </div>
+
+  <div class="content-grid">
+    <section class="panel program-panel">
+      <header class="panel-heading">
+        <div><h2>Bonus Programs</h2><p>{{ programs.length }} programs returned by the overview API</p></div>
+      </header>
+      <div *ngIf="overviewLoading" class="table-state">Loading programs…</div>
+      <div *ngIf="!overviewLoading && !overviewError && programs.length === 0" class="table-state">
+        No bonus programs were returned for this reporting range.
+      </div>
+      <div class="table-scroll" *ngIf="programs.length">
+        <table class="data-table">
+          <thead><tr><th>Program</th><th>Type</th><th>Recipients</th><th>Distributed</th><th>Used</th><th>Conversion</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let program of programs">
+              <td><div class="campaign"><span class="campaign-icon" [style.background]="'linear-gradient(135deg, ' + program.color + ', ' + program.color + '99)'">{{ program.name.charAt(0) }}</span><span><strong>{{ program.name }}</strong></span></div></td>
+              <td><span class="type-chip" [style.color]="program.color" [style.border-color]="program.color + '55'">{{ program.type }}</span></td>
+              <td class="mono">{{ program.recipients }}</td>
+              <td class="mono strong">{{ program.distributed }}</td>
+              <td class="mono positive">{{ program.used }}</td>
+              <td><div class="conversion"><span><i [style.width.%]="program.conversion" [style.background]="program.color"></i></span><b>{{ program.conversion }}%</b></div></td>
+              <td><span class="status-chip" [class.live]="program.status.toLowerCase() === 'active' || program.status.toLowerCase() === 'live'">{{ program.status }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel abuse-panel">
+      <h2>Bonus Abuse Summary</h2>
+      <p>Counts returned by the overview API</p>
+      <div class="abuse-total"><strong>{{ abuseFlags }}</strong><span>Abuse flags</span></div>
+      <div class="abuse-count"><span>Confirmed</span><strong>{{ abuseConfirmed }}</strong></div>
+      <div class="abuse-count"><span>Investigating</span><strong>{{ abuseInvestigating }}</strong></div>
+      <p class="data-note">Individual flag details are not included in this API response.</p>
+    </section>
+  </div>
+
+  <section class="panel transactions-panel">
+    <header class="panel-heading transaction-heading">
+      <div><h2>Bonus Transactions</h2><p>{{ pageRangeLabel }}</p></div>
+      <div class="transaction-filters">
+        <label>
+          <span>Bonus type</span>
+          <select [value]="bonusTypeFilter" (change)="setBonusType($any($event.target).value)">
+            <option value="">All bonus types</option>
+            <option value="Joining">Joining</option>
+            <option value="Subscription">Subscription</option>
+            <option value="Promotional">Promotional</option>
+            <option value="Referral">Referral</option>
+            <option value="Cashback">Cashback</option>
+            <option value="Loyalty">Loyalty</option>
+          </select>
+        </label>
+        <label>
+          <span>Transaction</span>
+          <select [value]="transactionTypeFilter" (change)="setTransactionType($any($event.target).value)">
+            <option value="">All transactions</option>
+            <option value="credit">Credit</option>
+            <option value="debit">Debit</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <div *ngIf="transactionsLoading" class="table-state" role="status">Loading bonus transactions…</div>
+    <div *ngIf="transactionsError" class="table-state error-state" role="alert">
+      <span>{{ transactionsError }}</span>
+      <button type="button" class="quiet-button" (click)="loadTransactions(pagination?.page || 1)">Retry transactions</button>
+    </div>
+    <div *ngIf="!transactionsLoading && !transactionsError && transactions.length === 0" class="table-state">
+      No bonus transactions match the selected filters.
+    </div>
+    <div class="table-scroll" *ngIf="transactions.length">
+      <table class="data-table transaction-table">
+        <thead><tr><th>User</th><th>Tier</th><th>Bonus Type</th><th>Entry</th><th>Amount</th><th>Balance Before</th><th>Balance After</th><th>Remark</th><th>Reference</th><th>Created</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let transaction of transactions">
+            <td><strong>{{ transaction.name }}</strong><small class="subline">{{ transaction.usercode }}</small></td>
+            <td>{{ transaction.tier }}</td>
+            <td><span class="type-chip">{{ transaction.type }}</span></td>
+            <td><span class="entry-chip" [ngClass]="transactionTone(transaction.transtype)">{{ transaction.transtype }}</span></td>
+            <td class="mono" [class.positive]="transaction.signedAmount >= 0" [class.negative]="transaction.signedAmount < 0">{{ signedMoney(transaction.signedAmount) }}</td>
+            <td class="mono">{{ money(transaction.balanceBefore) }}</td>
+            <td class="mono">{{ money(transaction.balanceAfter) }}</td>
+            <td class="remark-cell">{{ transaction.remark }}</td>
+            <td class="mono reference-cell">{{ transaction.referenceId }}</td>
+            <td>{{ formatDate(transaction.createdAt) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <footer class="pagination" *ngIf="pagination && pagination.totalPages > 1">
+      <span>{{ pageRangeLabel }}</span>
+      <div>
+        <button type="button" class="quiet-button" (click)="previousPage()" [disabled]="pagination.page <= 1">Previous</button>
+        <span class="page-number">Page {{ pagination.page }} of {{ pagination.totalPages }}</span>
+        <button type="button" class="quiet-button" (click)="nextPage()" [disabled]="pagination.page >= pagination.totalPages">Next</button>
+      </div>
+    </footer>
+  </section>
+</section>

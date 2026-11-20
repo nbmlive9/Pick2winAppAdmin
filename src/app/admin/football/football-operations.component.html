@@ -3,25 +3,28 @@
     <div class="metric-grid"><app-ops-metric-card *ngFor="let metric of seriesMetrics" [metric]="metric"></app-ops-metric-card></div>
     <section class="panel list-panel">
       <header class="list-tools">
-        <button class="filter-chip active" type="button">All (14)</button><button class="filter-chip" type="button">Live (6)</button>
-        <button class="filter-chip" type="button">Upcoming (6)</button><button class="filter-chip" type="button">Concluded (2)</button>
-        <span class="tool-spacer"></span><span class="sort-label">Sort: Start date ↓</span>
+        <button class="filter-chip" [class.active]="status === ''" type="button" (click)="setStatus('')">All</button><button class="filter-chip" [class.active]="status === 'live'" type="button" (click)="setStatus('live')">Live</button>
+        <button class="filter-chip" [class.active]="status === 'upcoming'" type="button" (click)="setStatus('upcoming')">Upcoming</button>
+        <input aria-label="Search series" placeholder="Search series" [value]="search" (input)="setSearch($event)">
+        <span class="tool-spacer"></span><span>{{ total }} series</span>
       </header>
       <div class="table-scroll">
         <table class="operations-table series-table">
           <thead><tr><th>Series</th><th>Type</th><th>Window</th><th>Matches</th><th>Contests</th><th>Prize Pool</th><th>Active Users</th><th>Status</th><th></th></tr></thead>
           <tbody>
             <tr *ngFor="let item of series">
-              <td><div class="series-name"><span class="series-icon" [style.background]="'linear-gradient(135deg, ' + item.color + ', ' + item.color + '88)'">{{ item.icon }}</span><span><strong>{{ item.name }}</strong><small>{{ item.id }}</small></span></div></td>
-              <td><span class="sport-chip" [style.color]="item.color" [style.border-color]="item.color + '55'">{{ item.type }}</span></td>
-              <td class="mono">{{ item.window }}</td><td class="mono">{{ item.matches }}</td><td class="mono">{{ item.contests }}</td>
-              <td class="mono bold">{{ item.prize }}</td><td class="mono">{{ item.users }}</td>
-              <td><span class="status-chip" [class.status-live]="item.status === 'Live'"><i></i>{{ item.status }}</span></td>
+              <td><div class="series-name"><span class="series-icon">⚽</span><span><strong>{{ item?.name || '—' }}</strong><small>{{ item?.id || '—' }} · {{ item?.season || '—' }}</small></span></div></td>
+              <td>—</td><td class="mono">{{ dateWindow(item?.start_date, item?.end_date) }}</td><td class="mono">{{ num(item?.matches) }}</td><td class="mono">{{ num(item?.contests) }}</td>
+              <td class="mono bold">{{ money(item?.prize_pool) }}</td><td class="mono">{{ num(item?.active_users) }}</td>
+              <td><span class="status-chip"><i></i>{{ statusLabel(item?.status) }}</span></td>
               <td><a class="table-link" routerLink="/admin/football/matches">View</a></td>
             </tr>
           </tbody>
         </table>
       </div>
+      <p *ngIf="loading" role="status">Loading series…</p><p *ngIf="error" role="alert">{{ error }} <button type="button" (click)="loadSeries()">Retry</button></p>
+      <p *ngIf="!loading && !error && !series.length">No series found.</p>
+      <footer><span>Page {{ page }} of {{ totalPages }} · {{ total }} series</span><button type="button" (click)="previousPage()" [disabled]="page <= 1 || loading">Previous</button><button type="button" (click)="nextPage()" [disabled]="page >= totalPages || loading">Next</button></footer>
     </section>
   </ng-container>
 
@@ -63,24 +66,27 @@
     <div class="metric-grid"><app-ops-metric-card *ngFor="let metric of matchMetrics" [metric]="metric"></app-ops-metric-card></div>
     <section class="panel list-panel">
       <header class="list-tools">
-        <button class="filter-chip active" type="button">All</button><button class="filter-chip" type="button">Live</button>
-        <button class="filter-chip" type="button">Upcoming</button><button class="filter-chip" type="button">Played</button><button class="filter-chip" type="button">Disputed</button>
-        <span class="tool-spacer"></span><span class="sort-label">Sort: Kickoff ↑</span>
+        <button class="filter-chip" [class.active]="when === ''" type="button" (click)="setWhen('')">All</button><button class="filter-chip" [class.active]="when === 'live'" type="button" (click)="setWhen('live')">Live</button>
+        <button class="filter-chip" [class.active]="when === 'today'" type="button" (click)="setWhen('today')">Today</button><button class="filter-chip" [class.active]="when === 'week'" type="button" (click)="setWhen('week')">This week</button>
+        <input aria-label="Filter by series ID" placeholder="Series ID" [value]="seriesId" (input)="setSeriesId($event)"><input aria-label="Search matches" placeholder="Search matches" [value]="search" (input)="setSearch($event)">
+        <span class="tool-spacer"></span><span>{{ total }} matches</span>
       </header>
       <div class="table-scroll">
         <table class="operations-table match-table">
           <thead><tr><th>Match</th><th>Series</th><th>Kickoff</th><th>Score</th><th>Contests</th><th>Pot</th><th>Status</th><th></th></tr></thead>
           <tbody>
             <tr *ngFor="let match of matches">
-              <td><div class="fixture"><span class="team"><i [style.background]="teamTone(match.home)">{{ match.home.slice(0, 2) }}</i><b>{{ match.home }}</b></span><strong class="score" [class.live-score]="match.status.startsWith('Live')">{{ match.score }}</strong><span class="team"><i [style.background]="teamTone(match.away)">{{ match.away.slice(0, 2) }}</i><b>{{ match.away }}</b></span></div></td>
-              <td><span class="sport-chip" [ngClass]="'sport-' + match.seriesTone">{{ match.series }}</span></td>
-              <td class="mono">{{ match.kickoff }}</td><td class="mono bold">{{ match.score }}</td><td class="mono">{{ match.contests }}</td><td class="mono bold">{{ match.pot }}</td>
-              <td><span class="status-chip" [ngClass]="match.status.startsWith('Live') ? 'status-match-live' : match.status === 'Played' ? 'status-played' : match.status === 'VAR Review' ? 'status-review' : ''"><i></i>{{ match.status }}</span></td>
-              <td><a class="table-link" routerLink="/admin/football/contests">View</a></td>
+              <td><div class="fixture"><span class="team"><i>{{ (match?.home || '—').slice(0, 2) }}</i><b>{{ match?.home || '—' }}</b></span><strong class="score">vs</strong><span class="team"><i>{{ (match?.away || '—').slice(0, 2) }}</i><b>{{ match?.away || '—' }}</b></span></div></td>
+              <td>{{ match?.series || '—' }}</td><td class="mono">{{ match?.start_time ? (match.start_time | date:'medium') : '—' }}</td><td class="mono bold">—</td><td class="mono">{{ num(match?.contests) }}</td><td class="mono bold">{{ money(match?.prize_pool) }}</td>
+              <td><span class="status-chip"><i></i>{{ statusLabel(match?.status) }}</span></td>
+              <td><a class="table-link" [routerLink]="['/admin/football/contests', match?.match_id]">View</a></td>
             </tr>
           </tbody>
         </table>
       </div>
+      <p *ngIf="loading" role="status">Loading matches…</p><p *ngIf="error" role="alert">{{ error }} <button type="button" (click)="loadMatches()">Retry</button></p>
+      <p *ngIf="!loading && !error && !matches.length">No matches found.</p>
+      <footer><span>Page {{ page }} of {{ totalPages }} · {{ total }} matches</span><button type="button" (click)="previousPage()" [disabled]="page <= 1 || loading">Previous</button><button type="button" (click)="nextPage()" [disabled]="page >= totalPages || loading">Next</button></footer>
     </section>
   </ng-container>
 

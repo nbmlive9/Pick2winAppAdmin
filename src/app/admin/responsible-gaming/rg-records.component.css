@@ -25,7 +25,7 @@
   display: grid;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .08);
   border-radius: 13px;
@@ -125,7 +125,7 @@
 }
 
 .notice {
-  grid-row: 2;
+  grid-row: auto;
   margin: 0;
   padding: 7px 14px;
   border-bottom: 1px solid rgba(255, 255, 255, .06);
@@ -133,8 +133,76 @@
   font-size: clamp(11px, calc(10px + 0.35vw), 13px);
 }
 
+.deposit-limit-edit-form,
+.apply-limit-edit-form {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(91, 141, 239, .06);
+}
+
+.deposit-limit-form-heading,
+.deposit-limit-form-actions {
+  display: flex;
+  min-width: 0;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.deposit-limit-form-heading strong {
+  color: #e4e8f2;
+}
+
+.deposit-limit-form-heading span {
+  color: #8e98b2;
+  overflow-wrap: anywhere;
+}
+
+.deposit-limit-edit-form label,
+.apply-limit-edit-form label {
+  color: #aeb7cd;
+  font-size: 12px;
+}
+
+.deposit-limit-edit-form input,
+.deposit-limit-edit-form textarea,
+.apply-limit-edit-form input:not([type='checkbox']),
+.apply-limit-edit-form textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 7px;
+  box-sizing: border-box;
+  color: #e4e8f2;
+  background: #111521;
+  font: inherit;
+}
+
+.deposit-limit-form-actions {
+  justify-content: flex-end;
+}
+
+.force-limit-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.force-limit-label input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  accent-color: #5b8def;
+}
+
 .table-scroll {
-  grid-row: 3;
+  grid-row: auto;
   width: 100%;
   min-width: 0;
   min-height: 0;
@@ -325,6 +393,12 @@
 
 .row-action:hover {
   filter: brightness(1.15);
+}
+
+.row-reject-action {
+  margin-left: 5px;
+  border-color: rgba(255, 91, 104, .3);
+  color: #ff9ca4;
 }
 
 .row-action.tone-red {

@@ -1,0 +1,14 @@
+<section class="contest-manager">
+  <p *ngIf="loading" role="status">Loading match contests…</p>
+  <div *ngIf="error" role="alert">{{ error }} <button *ngIf="hasMatchId" type="button" (click)="load()">Retry</button></div>
+  <section class="panel contest-hero" *ngIf="match as m">
+    <div class="hero-match"><span class="status-chip">{{ m.status || '—' }}</span><small>{{ m.seriesname || '—' }} · Match ID {{ m.id || '—' }}</small><h2>{{ m.match || ((m.hometeamname || '—') + ' vs ' + (m.awayteamname || '—')) }}</h2><p>{{ m.start_time ? (m.start_time | date:'medium') : '—' }}</p></div>
+    <div class="hero-stats"><div><small>CONTESTS</small><strong>{{ num(summary?.contests) }}</strong></div><div><small>PRIZE POOL</small><strong>{{ money(summary?.prize_pool) }}</strong></div><div><small>ENTRIES</small><strong>{{ num(summary?.entries) }}</strong></div><div><small>CAPACITY</small><strong>{{ num(summary?.capacity) }}</strong></div></div>
+  </section>
+  <section class="panel release-panel" *ngIf="match"><header class="release-heading"><div><h2>Contests</h2><p>Contest data returned for this match</p></div></header>
+    <div class="release-body"><div><b>Platform fees:</b> {{ money(summary?.platform_fees) }} · <b>Fill:</b> {{ percent(summary?.fill_pct) }}</div>
+      <article class="contest-tier" *ngFor="let contest of contests"><h3>{{ contest?.name || contest?.title || 'Contest' }}</h3><pre>{{ contest | json }}</pre></article>
+      <p *ngIf="!loading && !contests.length">No contests found for this match.</p>
+    </div>
+  </section>
+</section>

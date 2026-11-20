@@ -1,17 +1,21 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { AdminService } from '../../core/services/admin.service';
 
 interface Withdrawal {
   id: string;
+  userId: number | string;
+  usercode: string;
   name: string;
   initials: string;
   tier: string;
-  amount: string;
+  amount: number;
   method: string;
-  wait: string;
+  requestedAt: string;
+  waitHours: number;
   risk: number;
-  flag: string;
-  checks: { kyc: 'ok' | 'missing'; aml: 'ok' | 'medium' | 'high'; balance: 'ok'; abuse: 'ok' | 'missing'; suspicious: 'ok' | 'missing' };
-  filter: string;
+  flags: string[];
+  held: boolean;
+  checks: { kyc: boolean; aml: string; balance: boolean; abuse: boolean; suspicious: boolean };
 }
 
 @Component({
@@ -19,10 +23,10 @@ interface Withdrawal {
   templateUrl: './withdrawal-review.component.html',
   styleUrls: ['./withdrawal-review.component.css'],
 })
-export class WithdrawalReviewComponent {
+export class WithdrawalReviewComponent implements OnInit {
   readonly actions = [
     { label: 'Bulk Verify' },
-    { label: 'Approve Selected (3)', primary: true },
+    { label: 'Approve Selected', primary: true },
   ];
   readonly filters = [
     { key: 'all', label: 'All' },
@@ -33,60 +37,143 @@ export class WithdrawalReviewComponent {
   activeFilter = 'all';
   searchTerm = '';
   notice = '';
-  selectedId = 'UK-48820';
-  readonly selectedIds = new Set<string>(['UK-49021', 'UK-48291', 'UK-48421']);
-  readonly withdrawals: Withdrawal[] = [
-    { id: 'UK-49021', name: 'Sara Park', initials: 'SP', tier: 'Other', amount: '£200.00', method: 'Bank •••2914', wait: '2h', risk: 18, flag: '', checks: { kyc: 'ok', aml: 'ok', balance: 'ok', abuse: 'ok', suspicious: 'ok' }, filter: 'auto-clear' },
-    { id: 'UK-48291', name: 'Daniel Foster', initials: 'DF', tier: 'Subscriber', amount: '£200.00', method: 'Bank •••4218', wait: '3h', risk: 22, flag: '', checks: { kyc: 'ok', aml: 'ok', balance: 'ok', abuse: 'ok', suspicious: 'ok' }, filter: 'auto-clear' },
-    { id: 'UK-48588', name: 'Owen Briggs', initials: 'OB', tier: 'Other', amount: '£380.00', method: 'Bank •••0029', wait: '4h', risk: 64, flag: 'Rapid W/D', checks: { kyc: 'ok', aml: 'medium', balance: 'ok', abuse: 'missing', suspicious: 'missing' }, filter: 'flagged' },
-    { id: 'UK-48820', name: 'Aaron Khouri', initials: 'AK', tier: 'Other', amount: '£1,400.00', method: 'Visa •••8821', wait: '6h', risk: 92, flag: 'Multi-acct', checks: { kyc: 'ok', aml: 'high', balance: 'ok', abuse: 'missing', suspicious: 'missing' }, filter: 'flagged' },
-    { id: 'UK-48421', name: 'Helena Moss', initials: 'HM', tier: 'Student', amount: '£85.00', method: 'Bank •••4118', wait: '6h', risk: 12, flag: '', checks: { kyc: 'ok', aml: 'ok', balance: 'ok', abuse: 'ok', suspicious: 'ok' }, filter: 'auto-clear' },
-    { id: 'UK-48994', name: 'Tom Whitlock', initials: 'TW', tier: 'Other', amount: '£3,200.00', method: 'Bank •••8742', wait: '7h', risk: 68, flag: 'SoF £2K+', checks: { kyc: 'ok', aml: 'medium', balance: 'ok', abuse: 'ok', suspicious: 'missing' }, filter: 'flagged' },
-    { id: 'UK-48710', name: 'Imogen Ash', initials: 'IA', tier: 'Student', amount: '£40.00', method: 'Bank •••0021', wait: '8h', risk: 48, flag: 'KYC stale', checks: { kyc: 'missing', aml: 'ok', balance: 'ok', abuse: 'ok', suspicious: 'ok' }, filter: 'held' },
-    { id: 'UK-47821', name: 'Marcus Reed', initials: 'MR', tier: 'Other', amount: '£640.00', method: 'Bank •••3320', wait: '8h', risk: 28, flag: '', checks: { kyc: 'ok', aml: 'ok', balance: 'ok', abuse: 'ok', suspicious: 'ok' }, filter: 'auto-clear' },
-  ];
+  error = '';
+  loading = false;
+  detailLoading = false;
+  selectedId = '';
+  selectedIds = new Set<string>();
+  withdrawals: Withdrawal[] = [];
+  summary: any = { pending: 0, pending_amount: 0, flagged: 0, held: 0, auto_clear: 0 };
+  detail: any = null;
+  page = 1;
+  limit = 20;
+  total = 0;
+  totalPages = 0;
+
+  constructor(private admin: AdminService) {}
+
+  ngOnInit(): void { this.loadQueue(); }
 
   get filteredWithdrawals(): Withdrawal[] {
     const query = this.searchTerm.trim().toLowerCase();
-    return this.withdrawals.filter(row =>
-      (this.activeFilter === 'all' || row.filter === this.activeFilter)
-      && (!query || `${row.name} ${row.id} ${row.amount} ${row.method} ${row.flag}`.toLowerCase().includes(query)));
+    return this.withdrawals.filter(row => {
+      const matchesFilter = this.activeFilter === 'all'
+        || (this.activeFilter === 'flagged' && row.flags.length > 0)
+        || (this.activeFilter === 'held' && row.held)
+        || (this.activeFilter === 'auto-clear' && !row.held && row.flags.length === 0 && this.checksPass(row.checks));
+      return matchesFilter && (!query || `${row.name} ${row.id} ${row.userId} ${row.usercode} ${row.tier} ${row.method} ${row.flags.join(' ')}`.toLowerCase().includes(query));
+    });
   }
 
-  get selectedWithdrawal(): Withdrawal {
-    return this.withdrawals.find(row => row.id === this.selectedId) || this.withdrawals[3];
+  get selectedWithdrawal(): Withdrawal | null {
+    return this.withdrawals.find(row => row.id === this.selectedId) ?? null;
   }
 
-  setSearchTerm(value: string): void {
-    this.searchTerm = value;
+  get activity(): any[] { return this.detail?.recent_activity ?? []; }
+
+  loadQueue(): void {
+    this.loading = true;
+    this.error = '';
+    this.admin.getWithdrawalQueue(this.page, this.limit).subscribe({
+      next: response => {
+        const rows = Array.isArray(response?.data) ? response.data : [];
+        this.summary = response?.summary ?? this.summary;
+        this.withdrawals = rows.map((item: any) => this.mapWithdrawal(item));
+        this.total = Number(response?.pagination?.total) || 0;
+        this.page = Number(response?.pagination?.page) || this.page;
+        this.limit = Number(response?.pagination?.limit) || this.limit;
+        this.totalPages = Number(response?.pagination?.totalPages) || 0;
+        if (!this.withdrawals.some(row => row.id === this.selectedId)) {
+          this.selectedId = this.withdrawals[0]?.id ?? '';
+          this.detail = null;
+          if (this.selectedId) this.loadReview(this.selectedId);
+        }
+        this.loading = false;
+      },
+      error: () => { this.error = 'Unable to load the withdrawal queue.'; this.loading = false; },
+    });
   }
 
-  setFilter(key: string): void {
-    this.activeFilter = key;
+  private mapWithdrawal(item: any): Withdrawal {
+    const checks = item?.checks ?? {};
+    return {
+      id: String(item?.withdraw_id ?? ''), userId: item?.user_id ?? '—', usercode: String(item?.usercode ?? ''),
+      name: String(item?.name ?? 'Unknown user'), initials: this.initials(item?.name), tier: String(item?.tier ?? '—'),
+      amount: Number(item?.amount) || 0, method: String(item?.method ?? '—'), requestedAt: String(item?.requested_at ?? ''),
+      waitHours: Number(item?.wait_hours) || 0, risk: Number(item?.risk_score) || 0,
+      flags: Array.isArray(item?.flags) ? item.flags.map((flag: any) => typeof flag === 'string' ? flag : flag?.label ?? flag?.code ?? JSON.stringify(flag)) : [],
+      held: Boolean(item?.is_held), checks: { kyc: checks.kyc === true, aml: String(checks.aml ?? 'unknown'), balance: checks.bal === true, abuse: checks.abuse === true, suspicious: checks.susp === true },
+    };
   }
+
+  private initials(name: any): string {
+    return String(name ?? '').trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part: string) => part[0]).join('').toUpperCase() || '?';
+  }
+
+  private checksPass(checks: Withdrawal['checks']): boolean {
+    return checks.kyc && checks.balance && checks.abuse && checks.suspicious && checks.aml.toLowerCase() === 'low';
+  }
+
+  loadReview(withdrawId: string): void {
+    this.detailLoading = true;
+    this.detail = null;
+    this.admin.getWithdrawalReview(withdrawId).subscribe({
+      next: response => { this.detail = response?.data ?? null; this.detailLoading = false; },
+      error: () => { this.error = 'Unable to load withdrawal review details.'; this.detailLoading = false; },
+    });
+  }
+
+  setSearchTerm(value: string): void { this.searchTerm = value; }
+  setFilter(key: string): void { this.activeFilter = key; }
 
   selectWithdrawal(row: Withdrawal): void {
+    if (this.selectedId === row.id && this.detail) return;
     this.selectedId = row.id;
+    this.loadReview(row.id);
   }
 
   toggleSelected(row: Withdrawal, event: Event): void {
     event.stopPropagation();
     if (this.selectedIds.has(row.id)) this.selectedIds.delete(row.id);
     else this.selectedIds.add(row.id);
-    this.notice = `${row.name} ${this.selectedIds.has(row.id) ? 'added to' : 'removed from'} the selection.`;
     this.selectedId = row.id;
+    this.loadReview(row.id);
   }
+
+  changePage(page: number): void {
+    if (page < 1 || (this.totalPages && page > this.totalPages)) return;
+    this.page = page;
+    this.loadQueue();
+  }
+
+  formatMoney(value: any): string {
+    const amount = Number(value);
+    return Number.isFinite(amount) ? new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount) : '—';
+  }
+
+  formatDate(value: any): string {
+    if (!value) return '—';
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleString();
+  }
+
+  formatWait(hours: number): string {
+    if (!Number.isFinite(hours)) return '—';
+    const days = Math.floor(hours / 24);
+    const remainingHours = Math.floor(hours % 24);
+    return days ? `${days}d ${remainingHours}h` : `${remainingHours}h`;
+  }
+
+  riskColor(score: number): string { return score >= 80 ? '#ff3b47' : score >= 50 ? '#ffb627' : '#2bd4a1'; }
+  amlClass(value: string): string { return value.toLowerCase() === 'low' ? 'pip-ok' : value.toLowerCase() === 'medium' ? 'pip-warn' : 'pip-bad'; }
 
   handleTopbarAction(index: number): void {
     const action = this.actions[index];
-    if (action) this.notice = `${action.label} selected.`;
+    if (!action) return;
+    this.notice = `${action.label} is not available until a withdrawal action endpoint is provided.`;
   }
 
   handleDecision(decision: string): void {
-    this.notice = `${decision} selected for ${this.selectedWithdrawal.name}.`;
-  }
-
-  riskColor(score: number): string {
-    return score >= 80 ? '#ff3b47' : score >= 50 ? '#ffb627' : '#2bd4a1';
+    this.notice = `${decision} selected for ${this.selectedWithdrawal?.name ?? 'the selected request'}. No decision endpoint was provided.`;
   }
 }

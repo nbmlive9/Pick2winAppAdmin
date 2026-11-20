@@ -23,6 +23,16 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
   isAlertsView = false;
   loading = false;
   errorNotice = '';
+  selectedLimitRow: RgRow | null = null;
+  depositLimitValue = '';
+  depositLimitReason = 'Affordability checked';
+  depositLimitSubmitting = false;
+  isApplyingDueLimitChanges = false;
+  selectedLimitRequest: RgRow | null = null;
+  applyLimitReason = 'Cooling-off complete';
+  applyLimitForce = false;
+  applyLimitSubmitting = false;
+  limitChangeAction: 'apply' | 'reject' = 'apply';
   pagination: {
     total: number;
     page: number;
@@ -435,6 +445,7 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
             return {
               name: String(item.name ?? 'Unknown user'),
               id: String(item.usercode ?? item.user_id ?? item.ref ?? '—'),
+              limitRequestId: item.limit_request_id ?? item.limitRequestId ?? item.request_id ?? item.requestId ?? item.id,
               filters: [normalizedType, ...(cooling ? ['pending'] : [])],
               cells: [
                 { value: typeLabel, tone: normalizedType === 'reduction' ? 'green' : 'amber', badge: true },
@@ -618,6 +629,8 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
             return {
               name: String(item.name ?? 'Unknown user'),
               id: String(item.usercode ?? item.user_id ?? '—'),
+              userId: item.user_id ?? item.userid ?? item.id,
+              depositLimit: Number(item.cap ?? item.deposit_limit ?? item.monthly_limit) || 0,
               filters,
               highlight: atLimit || pending,
               cells: [
@@ -686,6 +699,58 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
     };
   }
 
+  openDepositLimitForm(row: RgRow): void {
+    if (row.userId === undefined || row.userId === null || row.userId === '') {
+      this.errorNotice = 'This row does not include a user ID, so its limit cannot be updated.';
+      return;
+    }
+    this.errorNotice = '';
+    this.notice = '';
+    this.selectedLimitRow = row;
+    this.depositLimitValue = String(row.depositLimit ?? '');
+    this.depositLimitReason = 'Affordability checked';
+  }
+
+  cancelDepositLimitForm(): void {
+    this.selectedLimitRow = null;
+    this.depositLimitSubmitting = false;
+  }
+
+  submitDepositLimit(event: Event): void {
+    event.preventDefault();
+    const row = this.selectedLimitRow;
+    const depositLimit = Number(this.depositLimitValue);
+    const reason = this.depositLimitReason.trim();
+    if (row?.userId === undefined || row.userId === null || row.userId === '' || !Number.isFinite(depositLimit) || depositLimit < 0 || !reason || this.depositLimitSubmitting) return;
+
+    this.depositLimitSubmitting = true;
+    this.errorNotice = '';
+    this.notice = '';
+    this.admin.updateDepositLimit(row.userId, depositLimit, reason).subscribe({
+      next: (response: any) => {
+        this.depositLimitSubmitting = false;
+        if (response?.success === false) {
+          this.errorNotice = response?.message || response?.error || 'The API did not update the deposit limit.';
+          return;
+        }
+        row.depositLimit = depositLimit;
+        const capCell = row.cells[2];
+        if (capCell) capCell.value = this.formatMoney(depositLimit);
+        this.selectedLimitRow = null;
+        this.notice = response?.message || `Deposit limit updated for ${row.name}.`;
+      },
+      error: (error: any) => {
+        this.depositLimitSubmitting = false;
+        this.errorNotice =
+          (typeof error.error?.message === 'string' && error.error.message) ||
+          (typeof error.error?.error === 'string' && error.error.error) ||
+          (error.status === 0
+            ? 'Could not reach the deposit limit API (network or CORS error).'
+            : `Could not update deposit limit: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`);
+      },
+    });
+  }
+
   get pageRangeLabel(): string {
     if (!this.pagination || this.pagination.total === 0) return 'Showing 0 of 0 records';
     const start = (this.pagination.page - 1) * this.pagination.limit + 1;
@@ -737,7 +802,107 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (action === 'secondary' && this.isLimitChangesView) {
+      this.applyDueLimitChanges();
+      return;
+    }
+
     this.notice = `${action === 'primary' ? this.page.primaryAction : this.page.secondaryAction} selected.`;
+  }
+
+  private applyDueLimitChanges(): void {
+    if (this.isApplyingDueLimitChanges) return;
+    if (!window.confirm('Apply all limit changes that are due now?')) return;
+
+    this.isApplyingDueLimitChanges = true;
+    this.notice = '';
+    this.errorNotice = '';
+    this.admin.applyDueLimitChanges().subscribe({
+      next: (response: any) => {
+        this.isApplyingDueLimitChanges = false;
+        if (response?.success === false) {
+          this.errorNotice = response?.message || response?.error || 'The API did not apply due limit changes.';
+          return;
+        }
+        this.notice = response?.message || 'Due limit changes applied successfully.';
+        this.loadLimitChanges(this.pagination?.page || 1);
+      },
+      error: (error: any) => {
+        this.isApplyingDueLimitChanges = false;
+        this.errorNotice =
+          (typeof error.error?.message === 'string' && error.error.message) ||
+          (typeof error.error?.error === 'string' && error.error.error) ||
+          (error.status === 0
+            ? 'Could not reach the apply due limit changes API (network or CORS error).'
+            : `Could not apply due limit changes: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`);
+      },
+    });
+  }
+
+  openApplyLimitForm(row: RgRow): void {
+    if (row.limitRequestId === undefined || row.limitRequestId === null || row.limitRequestId === '') {
+      this.errorNotice = 'This request row does not include a limit request ID, so it cannot be applied individually.';
+      return;
+    }
+    this.notice = '';
+    this.errorNotice = '';
+    this.selectedLimitRequest = row;
+    this.limitChangeAction = 'apply';
+    this.applyLimitReason = 'Cooling-off complete';
+    this.applyLimitForce = false;
+  }
+
+  openRejectLimitForm(row: RgRow): void {
+    if (row.limitRequestId === undefined || row.limitRequestId === null || row.limitRequestId === '') {
+      this.errorNotice = 'This request row does not include a limit request ID, so it cannot be rejected individually.';
+      return;
+    }
+    this.notice = '';
+    this.errorNotice = '';
+    this.selectedLimitRequest = row;
+    this.limitChangeAction = 'reject';
+    this.applyLimitReason = 'Affordability concern';
+    this.applyLimitForce = false;
+  }
+
+  cancelApplyLimitForm(): void {
+    this.selectedLimitRequest = null;
+    this.applyLimitSubmitting = false;
+  }
+
+  submitApplyLimitChange(event: Event): void {
+    event.preventDefault();
+    const row = this.selectedLimitRequest;
+    const reason = this.applyLimitReason.trim();
+    if (row?.limitRequestId === undefined || row.limitRequestId === null || row.limitRequestId === '' || !reason || this.applyLimitSubmitting) return;
+
+    this.applyLimitSubmitting = true;
+    this.notice = '';
+    this.errorNotice = '';
+    const request = this.limitChangeAction === 'reject'
+      ? this.admin.rejectLimitChange(row.limitRequestId, reason)
+      : this.admin.applyLimitChange(row.limitRequestId, reason, this.applyLimitForce);
+    request.subscribe({
+      next: (response: any) => {
+        this.applyLimitSubmitting = false;
+        if (response?.success === false) {
+          this.errorNotice = response?.message || response?.error || `The API did not ${this.limitChangeAction === 'reject' ? 'reject' : 'apply'} this limit change.`;
+          return;
+        }
+        this.selectedLimitRequest = null;
+        this.notice = response?.message || `Limit change for ${row.name} ${this.limitChangeAction === 'reject' ? 'rejected' : 'applied'} successfully.`;
+        this.loadLimitChanges(this.pagination?.page || 1);
+      },
+      error: (error: any) => {
+        this.applyLimitSubmitting = false;
+        this.errorNotice =
+          (typeof error.error?.message === 'string' && error.error.message) ||
+          (typeof error.error?.error === 'string' && error.error.error) ||
+          (error.status === 0
+            ? `Could not reach the ${this.limitChangeAction === 'reject' ? 'reject' : 'apply'} limit change API (network or CORS error).`
+            : `Could not ${this.limitChangeAction === 'reject' ? 'reject' : 'apply'} this limit change: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`);
+      },
+    });
   }
 
   handleRowAction(action: string, user: string): void {

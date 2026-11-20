@@ -1,14 +1,10 @@
 <h2>Cost Analytics</h2>
-<div class="provider-card" *ngFor="let provider of providers">
+<p class="cost-range" *ngIf="rangeLabel">{{ rangeLabel }}</p>
+<div class="provider-card" *ngFor="let cost of costs">
   <div class="provider-head">
-    <span class="provider-mark" [style.background]="provider.color">{{ provider.name.charAt(0) }}</span>
-    <span class="provider-name"><strong>{{ provider.name }}</strong><small>This month</small></span>
-    <strong class="provider-total">{{ provider.total }}</strong>
-  </div>
-  <svg class="provider-chart" viewBox="0 0 240 24" preserveAspectRatio="none" aria-hidden="true">
-    <polyline [attr.points]="provider.spark" [attr.stroke]="provider.color"></polyline>
-  </svg>
-  <div class="provider-details">
-    <div *ngFor="let detail of provider.details"><small>{{ detail[0] }}</small><strong>{{ detail[1] }}</strong></div>
+    <span class="provider-mark">{{ cost.category.charAt(0) }}</span>
+    <span class="provider-name"><strong>{{ cost.category }}</strong><small>Reported cost</small></span>
+    <strong class="provider-total">{{ cost.amount }}</strong>
   </div>
 </div>
+<p class="cost-empty" *ngIf="costs.length === 0">No cost categories were returned.</p>

@@ -24,6 +24,26 @@ export class UserProfileComponent implements OnInit {
   userNotes: any[] = [];
   notesLoading = false;
   notesNotice = '';
+  showAddNoteForm = false;
+  newAdminNote = '';
+  noteSubmitting = false;
+  noteSubmitSuccess = '';
+  noteSubmitError = '';
+  suspendSubmitting = false;
+  suspendError = '';
+  suspendSuccess = '';
+  unsuspendSubmitting = false;
+  unsuspendError = '';
+  unsuspendSuccess = '';
+  suspensionState: boolean | null = null;
+  deleteSubmitting = false;
+  deleteError = '';
+  deleteSuccess = '';
+  showErasureForm = false;
+  erasureNote = 'GDPR erasure completed.';
+  erasureSubmitting = false;
+  erasureError = '';
+  erasureSuccess = '';
   notesPagination: {
     total: number;
     page: number;
@@ -47,11 +67,17 @@ export class UserProfileComponent implements OnInit {
         return;
       }
       this.userId = userId;
+      this.suspensionState = null;
       this.notesLoadSequence++;
       this.data = null;
       this.userNotes = [];
       this.notesLoading = false;
       this.notesNotice = '';
+      this.showAddNoteForm = false;
+      this.newAdminNote = '';
+      this.noteSubmitSuccess = '';
+      this.noteSubmitError = '';
+      this.noteSubmitting = false;
       this.notesPagination = null;
       this.loadProfile();
     });
@@ -73,6 +99,13 @@ export class UserProfileComponent implements OnInit {
           return;
         }
         this.data = response.data;
+        if (this.suspensionState === null) {
+          const status = String(this.profile.account_status ?? '').toLowerCase();
+          this.suspensionState =
+            status === 'suspended' ||
+            status === 'blocked' ||
+            this.isEnabled(this.profile.is_blocked);
+        }
         this.loadUserNotes(1);
       },
       error: (error: HttpErrorResponse) => {
@@ -217,6 +250,182 @@ export class UserProfileComponent implements OnInit {
       },
     });
   }
+
+  toggleAddNoteForm(): void {
+    this.showAddNoteForm = !this.showAddNoteForm;
+    this.noteSubmitSuccess = '';
+    this.noteSubmitError = '';
+  }
+
+  submitAdminNote(event: Event): void {
+    event.preventDefault();
+    const note = this.newAdminNote.trim();
+    if (!this.userId || !note || this.noteSubmitting) return;
+
+    this.noteSubmitting = true;
+    this.noteSubmitSuccess = '';
+    this.noteSubmitError = '';
+    this.admin.addUserNote(this.userId, note).subscribe({
+      next: (response: any) => {
+        this.noteSubmitting = false;
+        if (response?.success === false) {
+          this.noteSubmitError =
+            response?.message || response?.error || 'The API did not accept the note.';
+          return;
+        }
+        this.newAdminNote = '';
+        this.showAddNoteForm = false;
+        this.noteSubmitSuccess =
+          response?.message || 'Admin note added successfully.';
+        this.loadUserNotes(1);
+      },
+      error: (error: HttpErrorResponse) => {
+        this.noteSubmitting = false;
+        this.noteSubmitError =
+          (typeof error.error?.message === 'string' && error.error.message) ||
+          (typeof error.error?.error === 'string' && error.error.error) ||
+          (error.status === 0
+            ? 'Could not reach the add note API (network or CORS error).'
+            : `Could not add admin note: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`);
+      },
+    });
+  }
+
+  suspendUser(): void {
+    if (!this.userId || this.suspendSubmitting) return;
+    this.suspendSubmitting = true;
+    this.suspendError = '';
+    this.suspendSuccess = '';
+    this.unsuspendError = '';
+    this.unsuspendSuccess = '';
+    this.admin.suspendUser(this.userId, 'Suspected multiple accounts').subscribe({
+      next: (response: any) => {
+        this.suspendSubmitting = false;
+        if (response?.success === false) {
+          this.suspendError = response?.message || response?.error || 'The API did not suspend this user.';
+          return;
+        }
+        this.suspendSuccess = response?.message || 'User suspended successfully.';
+        this.suspensionState = true;
+        this.loadProfile();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.suspendSubmitting = false;
+        this.suspendError =
+          (typeof error.error?.message === 'string' && error.error.message) ||
+          (typeof error.error?.error === 'string' && error.error.error) ||
+          (error.status === 0
+            ? 'Could not reach the suspend user API (network or CORS error).'
+            : `Could not suspend user: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`);
+      },
+    });
+  }
+
+  unsuspendUser(): void {
+    if (!this.userId || this.unsuspendSubmitting) return;
+    this.unsuspendSubmitting = true;
+    this.unsuspendError = '';
+    this.unsuspendSuccess = '';
+    this.suspendError = '';
+    this.suspendSuccess = '';
+    this.admin.unsuspendUser(this.userId, 'Review cleared').subscribe({
+      next: (response: any) => {
+        this.unsuspendSubmitting = false;
+        if (response?.success === false) {
+          this.unsuspendError = response?.message || response?.error || 'The API did not unsuspend this user.';
+          return;
+        }
+        this.unsuspendSuccess = response?.message || 'User unsuspended successfully.';
+        this.suspensionState = false;
+        this.loadProfile();
+      },
+      error: (error: HttpErrorResponse) => {
+        this.unsuspendSubmitting = false;
+        this.unsuspendError =
+          (typeof error.error?.message === 'string' && error.error.message) ||
+          (typeof error.error?.error === 'string' && error.error.error) ||
+          (error.status === 0
+            ? 'Could not reach the unsuspend user API (network or CORS error).'
+            : `Could not unsuspend user: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`);
+      },
+    });
+  }
+
+  deleteUser(): void {
+    if (!this.userId || this.deleteSubmitting) return;
+    const name = this.profile.name || this.userId;
+    if (!window.confirm(`Delete the account for ${name}? This action may not be reversible.`)) return;
+
+    this.deleteSubmitting = true;
+    this.deleteError = '';
+    this.deleteSuccess = '';
+    this.suspendError = '';
+    this.unsuspendError = '';
+    this.suspendSuccess = '';
+    this.unsuspendSuccess = '';
+    this.admin.deleteUser(this.userId, 'Duplicate account').subscribe({
+      next: (response: any) => {
+        this.deleteSubmitting = false;
+        if (response?.success === false) {
+          this.deleteError = response?.message || response?.error || 'The API did not delete this user.';
+          return;
+        }
+        this.deleteSuccess = response?.message || 'User account deleted successfully.';
+      },
+      error: (error: HttpErrorResponse) => {
+        this.deleteSubmitting = false;
+        this.deleteError =
+          (typeof error.error?.message === 'string' && error.error.message) ||
+          (typeof error.error?.error === 'string' && error.error.error) ||
+          (error.status === 0
+            ? 'Could not reach the delete user API (network or CORS error).'
+            : `Could not delete user: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`);
+      },
+    });
+  }
+
+  toggleErasureForm(): void {
+    this.showErasureForm = !this.showErasureForm;
+    this.erasureError = '';
+  }
+
+  submitAccountErasure(event: Event): void {
+    event.preventDefault();
+    const note = this.erasureNote.trim();
+    if (!this.userId || !note || this.erasureSubmitting) return;
+    if (!window.confirm(`Mark the account for ${this.profile.name || this.userId} as erased?`)) return;
+
+    this.erasureSubmitting = true;
+    this.erasureError = '';
+    this.erasureSuccess = '';
+    this.deleteError = '';
+    this.deleteSuccess = '';
+    this.suspendError = '';
+    this.unsuspendError = '';
+    this.suspendSuccess = '';
+    this.unsuspendSuccess = '';
+    this.admin.markAccountErased(this.userId, note).subscribe({
+      next: (response: any) => {
+        this.erasureSubmitting = false;
+        if (response?.success === false) {
+          this.erasureError = response?.message || response?.error || 'The API did not mark this account as erased.';
+          return;
+        }
+        this.showErasureForm = false;
+        this.erasureSuccess = response?.message || 'Account marked as erased successfully.';
+      },
+      error: (error: HttpErrorResponse) => {
+        this.erasureSubmitting = false;
+        this.erasureError =
+          (typeof error.error?.message === 'string' && error.error.message) ||
+          (typeof error.error?.error === 'string' && error.error.error) ||
+          (error.status === 0
+            ? 'Could not reach the account erasure API (network or CORS error).'
+            : `Could not mark account as erased: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`);
+      },
+    });
+  }
+
 
   previousUserNotesPage(): void {
     if (this.notesPagination && this.notesPagination.page > 1)

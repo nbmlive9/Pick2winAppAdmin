@@ -2,7 +2,6 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 
 import { HttpClientModule } from '@angular/common/http';
-import { AdminModule } from './admin/admin.module';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { CoreModule } from './core/core.module';
@@ -14,7 +13,6 @@ import { CoreModule } from './core/core.module';
     CoreModule,
     AppRoutingModule,
     HttpClientModule,
-    AdminModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

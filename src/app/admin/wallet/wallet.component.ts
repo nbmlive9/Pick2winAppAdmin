@@ -1,6 +1,7 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { AdminService } from 'src/app/core/services/admin.service';
 
 type WalletView = 'operator' | 'deposits' | 'transactions' | 'user-funds' | 'inactive-funds';
 
@@ -24,6 +25,8 @@ interface WalletFilter {
 }
 
 interface DepositRow {
+  recordId?: string;
+  transactionId?: string;
   user: string;
   id: string;
   initials: string;
@@ -45,6 +48,7 @@ interface LedgerRow {
   type: string;
   amount: string;
   balance: string;
+  balanceBefore?: string;
   time: string;
   reference: string;
   status: string;
@@ -56,6 +60,8 @@ interface FundRow {
   id: string;
   initials: string;
   balance: string;
+  depositBalance?: string;
+  winningBalance?: string;
   bonus: string;
   withdrawal: string;
   depositDate: string;
@@ -67,6 +73,7 @@ interface FundRow {
 
 interface InactiveRow {
   id: string;
+  user?: string;
   balance: string;
   lastActivity: string;
   inactiveFor: string;
@@ -80,11 +87,14 @@ interface RecentTransaction {
   id: string;
   user: string;
   initials: string;
+  uid?: string;
   type: string;
   method: string;
   amount: string;
-  fee: string;
-  net: string;
+  balanceAfter?: string;
+  reference?: string;
+  fee?: string;
+  net?: string;
   time: string;
   status: string;
 }
@@ -100,6 +110,17 @@ export class WalletComponent implements OnInit, OnDestroy {
   activeFilter = 'all';
   searchTerm = '';
   notice = '';
+  screenDescription = '';
+  loading = false;
+  errorNotice = '';
+  pagination: { total: number; page: number; limit: number; totalPages: number } | null = null;
+  operatorData: any = null;
+  operatorRangeLabel = '';
+  operatorRevenue = '—';
+  fundCompositionTotal = '—';
+  revenueStats: { label: string; value: string; negative: boolean; detail?: string }[] = [];
+  fundExtraStats: { label: string; value: string }[] = [];
+  private requestSequence = 0;
 
   readonly pages: Record<WalletView, { actions: WalletAction[]; filters: WalletFilter[]; metrics: WalletMetric[] }> = {
     operator: {
@@ -236,26 +257,12 @@ export class WalletComponent implements OnInit, OnDestroy {
     { id: 'TX-91829C', user: 'Aaron Khouri', initials: 'AK', type: 'Deposit', method: 'Visa •••8821', amount: '£1,000.00', fee: '£14.50', net: '£985.50', time: '34m', status: 'Failed' },
   ];
 
-  readonly dailyBars = [
-    { label: 'M', value: 42, highlight: false }, { label: 'T', value: 54, highlight: false },
-    { label: 'W', value: 48, highlight: false }, { label: 'T', value: 62, highlight: false },
-    { label: 'F', value: 78, highlight: true }, { label: 'S', value: 84, highlight: true },
-    { label: 'S', value: 62, highlight: false }, { label: 'M', value: 52, highlight: false },
-    { label: 'T', value: 58, highlight: false }, { label: 'W', value: 64, highlight: false },
-    { label: 'T', value: 72, highlight: false }, { label: 'F', value: 88, highlight: true },
-    { label: 'S', value: 94, highlight: true }, { label: 'S', value: 68, highlight: false },
-  ];
+  readonly dailyBars: { label: string; depositsPct: number; withdrawalsPct: number; netPct: number }[] = [];
   readonly notificationDots = [0, 1, 2, 3, 4];
 
-  readonly fundSegments = [
-    { label: 'User Funds', value: '£3.84M', color: '#5b8def', size: 65.5 },
-    { label: 'Operator Funds', value: '£924K', color: '#ff3b47', size: 15.8 },
-    { label: 'Locked / In-play', value: '£412K', color: '#ffb627', size: 7 },
-    { label: 'Withdrawable', value: '£612K', color: '#2bd4a1', size: 10.4 },
-    { label: 'Dormant', value: '£68K', color: '#7a839e', size: 1.3 },
-  ];
+  readonly fundSegments: { label: string; value: string; color: string; size: number }[] = [];
 
-  constructor(private readonly route: ActivatedRoute) {}
+  constructor(private readonly route: ActivatedRoute, private readonly admin: AdminService) {}
 
   get page(): (typeof this.pages)[WalletView] {
     return this.pages[this.view];
@@ -305,17 +312,348 @@ export class WalletComponent implements OnInit, OnDestroy {
       const requestedView = data['view'] as WalletView | undefined;
       this.view = requestedView && requestedView in this.pages ? requestedView : 'operator';
       this.activeFilter = 'all';
+      this.searchTerm = '';
       this.notice = '';
+      this.loadView(1);
     });
   }
 
   setSearchTerm(value: string): void {
     this.searchTerm = value;
+    if (this.view === 'deposits' || this.view === 'user-funds') this.loadView(1);
   }
 
   setFilter(key: string): void {
     this.activeFilter = key;
+    if (this.view === 'deposits' || this.view === 'user-funds' || this.view === 'inactive-funds') this.loadView(1);
   }
+
+  private loadView(pageNumber: number): void {
+    const sequence = ++this.requestSequence;
+    this.loading = true;
+    this.errorNotice = '';
+    this.pagination = null;
+    this.screenDescription = 'Loading records…';
+    this.clearCurrentRows();
+    this.pages[this.view].metrics = this.pages[this.view].metrics.map(metric => ({ ...metric, value: '—', detail: 'Loading…', spark: [] }));
+    const handle = (request: any, mapResponse: (response: any) => void) => request.subscribe({
+      next: (response: any) => {
+        if (sequence !== this.requestSequence) return;
+        this.loading = false;
+        if (response?.success === false) {
+          this.failLoad('The Finance & Wallet API returned an unsuccessful response.');
+          return;
+        }
+        mapResponse(response);
+      },
+      error: (error: any) => {
+        if (sequence !== this.requestSequence) return;
+        const message = typeof error?.error?.message === 'string'
+          ? error.error.message
+          : error?.status === 0 ? 'The Finance & Wallet API could not be reached.' : `Could not load wallet data (HTTP ${error?.status ?? 'error'}).`;
+        this.failLoad(message);
+      },
+    });
+
+    if (this.view === 'operator') {
+      handle(this.admin.getOperatorWallet(), response => this.applyOperatorWallet(response?.data ?? {}));
+    } else if (this.view === 'deposits') {
+      const status = this.activeFilter === 'failed' ? 'failed' : '';
+      handle(this.admin.getDeposits(pageNumber, 20, status, '', '', '', this.searchTerm.trim()), response => this.applyDeposits(response, pageNumber));
+    } else if (this.view === 'transactions') {
+      handle(this.admin.getTransactions(pageNumber, 20), response => this.applyTransactions(response, pageNumber));
+    } else if (this.view === 'user-funds') {
+      const filter = this.activeFilter === 'all' ? '' : this.activeFilter;
+      handle(this.admin.getUserFunds(pageNumber, 20, filter, 1000, this.searchTerm.trim()), response => this.applyUserFunds(response, pageNumber));
+    } else {
+      const months = this.activeFilter === '12-24' ? 12 : this.activeFilter === '2-7' ? 24 : this.activeFilter === '7+' ? 84 : 12;
+      handle(this.admin.getInactiveFunds(pageNumber, 20, months), response => this.applyInactiveFunds(response, pageNumber));
+    }
+  }
+
+  private clearCurrentRows(): void {
+    if (this.view === 'operator') {
+      this.recentTransactions.splice(0);
+      this.dailyBars.splice(0);
+      this.fundSegments.splice(0);
+      this.revenueStats = [];
+      this.fundExtraStats = [];
+      this.operatorRangeLabel = '';
+      this.operatorRevenue = '—';
+      this.fundCompositionTotal = '—';
+      this.fundDonutBackground = 'conic-gradient(rgba(255,255,255,.08) 0 100%)';
+      this.operatorCosts = [];
+      this.operatorData = null;
+    } else if (this.view === 'deposits') this.deposits.splice(0);
+    else if (this.view === 'transactions') this.ledger.splice(0);
+    else if (this.view === 'user-funds') this.funds.splice(0);
+    else this.inactiveRows.splice(0);
+  }
+
+  private failLoad(message: string): void {
+    this.loading = false;
+    this.errorNotice = message;
+    this.screenDescription = 'Wallet data is unavailable.';
+    this.pagination = null;
+    this.pages[this.view].metrics = this.pages[this.view].metrics.map(metric => ({ ...metric, value: '—', detail: 'Unavailable', spark: [] }));
+  }
+
+  private applyOperatorWallet(data: any): void {
+    this.operatorData = data;
+    const revenue = data.revenue ?? {};
+    const composition = data.fund_composition ?? {};
+    this.screenDescription = `Reporting range: ${data.range?.from ?? '—'} to ${data.range?.to ?? '—'}`;
+    this.operatorRangeLabel = this.screenDescription;
+    this.pages.operator.actions[0].label = `Range: ${data.range?.from ?? '—'} → ${data.range?.to ?? '—'}`;
+    this.operatorRevenue = this.money(revenue.net_operator_revenue);
+    this.fundCompositionTotal = this.money(composition.total_user_funds);
+    this.revenueStats = [
+      { label: 'Platform Fees', value: this.money(revenue.platform_fees), negative: false },
+      { label: 'Subscriptions', value: this.money(revenue.subscription_revenue), negative: false, detail: `${this.count(revenue.subscription_count)} purchases` },
+      { label: 'Stripe Fees', value: this.money(revenue.stripe_fees), negative: true },
+      { label: 'Sumsub Costs', value: this.money(revenue.sumsub_costs), negative: true },
+      { label: 'Other Costs', value: this.money(revenue.other_costs), negative: true },
+      { label: 'Total Costs', value: this.money(revenue.total_costs), negative: true },
+      { label: 'Bonus Expense', value: this.money(revenue.bonus_expense), negative: true },
+    ];
+    const segments = [
+      { label: 'Deposit Balances', amount: Number(composition.deposit_balances) || 0, color: '#5b8def' },
+      { label: 'Winning Balances', amount: Number(composition.winning_balances) || 0, color: '#2bd4a1' },
+      { label: 'Bonus Funds', amount: Number(composition.bonus_funds) || 0, color: '#a78bfa' },
+      { label: 'Operator Funds', amount: Number(composition.operator_funds) || 0, color: '#ff3b47' },
+    ];
+    const denominator = segments.reduce((sum, item) => sum + Math.abs(item.amount), 0);
+    const gradientStops: string[] = [];
+    let offset = 0;
+    const mappedSegments = segments.map(item => {
+      const size = denominator ? Math.abs(item.amount) / denominator * 100 : 0;
+      gradientStops.push(`${item.color} ${offset}% ${offset + size}%`);
+      offset += size;
+      return { label: item.label, value: this.money(item.amount), color: item.color, size };
+    });
+    this.fundSegments.splice(0, this.fundSegments.length, ...mappedSegments);
+    this.fundExtraStats = [
+      { label: 'Pending Withdrawals', value: `${this.money(composition.pending_withdrawals)} · ${this.count(composition.pending_withdraw_count)} requests` },
+      { label: 'In Play', value: this.money(composition.in_play) },
+      { label: 'Locked Total', value: this.money(composition.locked_total) },
+      { label: 'Withdrawable', value: this.money(composition.withdrawable) },
+      { label: 'Dormant Funds / Users', value: `${this.money(composition.dormant_funds)} / ${this.count(composition.dormant_users)}` },
+    ];
+    this.fundDonutBackground = `conic-gradient(${gradientStops.join(', ') || 'rgba(255,255,255,.08) 0 100%'})`;
+    const flows = Array.isArray(data.daily_flow) ? data.daily_flow : [];
+    const maxFlow = Math.max(1, ...flows.flatMap((item: any) => [Number(item.deposits ?? item.deposit_amount) || 0, Number(item.withdrawals ?? item.withdrawal_amount) || 0, Math.abs(Number(item.net) || 0)]));
+    const bars = flows.map((item: any) => ({
+      label: this.shortDate(item.date ?? item.day ?? item.created_at),
+      depositsPct: Math.max(0, (Number(item.deposits ?? item.deposit ?? item.deposit_amount) || 0) / maxFlow * 100),
+      withdrawalsPct: Math.max(0, (Number(item.withdrawals ?? item.withdrawal ?? item.withdrawal_amount) || 0) / maxFlow * 100),
+      netPct: Math.max(0, Math.abs(Number(item.net ?? item.net_flow) || 0) / maxFlow * 100),
+    }));
+    this.dailyBars.splice(0, this.dailyBars.length, ...bars);
+    const recent = Array.isArray(data.recent_transactions) ? data.recent_transactions : [];
+    this.recentTransactions.splice(0, this.recentTransactions.length, ...recent.map((item: any) => {
+      const type = this.transactionType(item.wallettype, item.transtype, item.remark);
+      const signed = Number(item.signed_amount ?? item.amount) || 0;
+      return {
+        id: String(item.id ?? item.reference_id ?? '—'),
+        user: String(item.name ?? 'Unknown user'),
+        initials: this.initials(item.name),
+        uid: String(item.usercode ?? item.user_id ?? '—'),
+        type,
+        method: String(item.wallettype ?? '—'),
+        amount: this.signedMoney(signed),
+        balanceAfter: this.moneyOrDash(item.balance_after),
+        reference: String(item.remark ?? item.reference_id ?? '—'),
+        time: item.created_at ? this.relativeTime(item.created_at) : '—',
+        status: String(item.status ?? 'Recorded').replace(/^./, (letter: string) => letter.toUpperCase()),
+      };
+    }));
+    this.screenDescription = `${this.screenDescription} · Net operator revenue ${this.money(revenue.net_operator_revenue)}`;
+    const costs = Array.isArray(revenue.costs_by_category) ? revenue.costs_by_category : [];
+    this.operatorCosts = costs.length
+      ? costs.map((item: any) => ({ category: String(item.category ?? item.name ?? item.type ?? 'Cost'), amount: this.money(item.amount ?? item.cost ?? item.total) }))
+      : [
+          { category: 'Stripe fees', amount: this.money(revenue.stripe_fees) },
+          { category: 'Sumsub costs', amount: this.money(revenue.sumsub_costs) },
+      { category: 'Other costs', amount: this.money(revenue.other_costs) },
+        ];
+  }
+
+  get fundDonutBackground(): string { return this._fundDonutBackground; }
+  set fundDonutBackground(value: string) { this._fundDonutBackground = value; }
+  private _fundDonutBackground = 'conic-gradient(rgba(255,255,255,.08) 0 100%)';
+  operatorCosts: { category: string; amount: string }[] = [];
+
+  get revenueLinePoints(): string {
+    if (!this.dailyBars.length) return '';
+    const max = Math.max(1, ...this.dailyBars.map(bar => bar.netPct));
+    return this.dailyBars.map((bar, index) => {
+      const x = this.dailyBars.length === 1 ? 230 : index / (this.dailyBars.length - 1) * 460;
+      const y = 110 - bar.netPct / max * 90;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+  }
+
+  private applyDeposits(response: any, pageNumber: number): void {
+    const summary = response?.summary ?? {};
+    const methodMix = Array.isArray(summary.method_split_30d)
+      ? summary.method_split_30d.map((item: any) => `${item.method ?? item.name ?? 'Other'} ${Number(item.share_pct ?? item.pct) || 0}%`).join(' · ')
+      : '';
+    this.pages.deposits.metrics = [
+      this.walletMetric('Deposits Today', this.money(summary.deposits_today), 'Deposit amount today', '#2bd4a1'),
+      this.walletMetric('Transactions Today', this.count(summary.transactions_today), 'Deposit transactions today', '#5b8def'),
+      this.walletMetric('Avg Deposit', this.money(summary.avg_deposit_today), methodMix || 'Average deposit today', '#a78bfa'),
+      this.walletMetric('Failed Today', this.count(summary.failed_today), `${this.count(summary.failure_rate_today)}% failure rate`, '#ff3b47'),
+    ];
+    const rows = Array.isArray(response?.data) ? response.data : [];
+    this.deposits.splice(0, this.deposits.length, ...rows.map((item: any) => ({
+      recordId: String(item.id ?? item.transaction_id ?? `${item.user_id ?? 'user'}-${item.created_at ?? 'deposit'}`),
+      transactionId: String(item.transaction_id ?? '—'),
+      user: String(item.name ?? 'Unknown user'), id: String(item.usercode ?? item.user_id ?? item.id ?? '—'),
+      initials: this.initials(item.name), amount: this.money(item.amount), method: String(item.method ?? '—'),
+      provider: String(item.provider ?? item.method ?? '—'), time: item.created_at ? this.clockTime(item.created_at) : '—',
+      kyc: this.kycLabel(item.kyc_status), fee: this.moneyOrDash(item.fee),
+      status: item.flagged ? 'Flagged' : String(item.status ?? 'unknown').replace(/^./, (letter: string) => letter.toUpperCase()),
+      filter: this.depositFilter(item.method, item.status, item.flagged),
+    })));
+    this.screenDescription = `${this.count(response?.pagination?.total)} deposit records · ${methodMix || 'Method split unavailable'}`;
+    this.setPagination(response?.pagination, pageNumber);
+  }
+
+  private applyTransactions(response: any, pageNumber: number): void {
+    const summary = response?.summary ?? {};
+    const deposits = summary.deposits ?? {};
+    const withdrawals = summary.withdrawals ?? {};
+    const contest = summary.contest_entry_win ?? {};
+    const bonuses = summary.bonuses ?? {};
+    this.pages.transactions.metrics = [
+      this.walletMetric('Volume Today', this.money(summary.volume_today), `${this.count(summary.transactions_today)} transactions`, '#2bd4a1'),
+      this.walletMetric('Deposits', this.money(deposits.amount), `${this.count(deposits.count)} txns · ${this.count(deposits.share_pct)}%`, '#5b8def'),
+      this.walletMetric('Withdrawals', this.money(withdrawals.amount), `${this.count(withdrawals.count)} txns · ${this.count(withdrawals.share_pct)}%`, '#ff3b47'),
+      this.walletMetric('Contest Entry/Win', this.money(contest.amount), `${this.count(contest.count)} txns · ${this.count(contest.share_pct)}% · bonuses ${this.money(bonuses.amount)}`, '#a78bfa'),
+    ];
+    const rows = Array.isArray(response?.data) ? response.data : [];
+    this.ledger.splice(0, this.ledger.length, ...rows.map((item: any) => {
+      const type = this.transactionType(item.wallettype, item.transtype, item.remark);
+      const signed = Number(item.signed_amount ?? item.amount) || 0;
+      return {
+        id: String(item.id ?? '—'), user: String(item.name ?? 'Unknown user'), uid: String(item.usercode ?? item.user_id ?? '—'),
+        initials: this.initials(item.name), type, amount: this.signedMoney(signed),
+        balanceBefore: this.moneyOrDash(item.balance_before), balance: this.moneyOrDash(item.balance_after), time: item.created_at ? this.clockTime(item.created_at) : '—',
+        reference: String(item.remark ?? item.reference_id ?? '—'),
+        status: String(item.status ?? (item.transtype === 'debit' || item.transtype === 'credit' ? 'Settled' : 'Recorded')).replace(/^./, (letter: string) => letter.toUpperCase()),
+        filter: this.transactionFilter(item.wallettype, item.transtype, type),
+      };
+    }));
+    this.screenDescription = `${this.count(response?.pagination?.total)} ledger records · ${Array.isArray(summary.by_type) ? summary.by_type.length : 0} transaction categories`;
+    this.setPagination(response?.pagination, pageNumber);
+  }
+
+  private applyUserFunds(response: any, pageNumber: number): void {
+    const summary = response?.summary ?? {};
+    this.pages['user-funds'].metrics = [
+      this.walletMetric('Total User Funds', this.money(summary.total_user_funds), 'Combined customer balances', '#2bd4a1'),
+      this.walletMetric('Active Balances', this.count(summary.active_balances), `Average ${this.money(summary.avg_balance)}`, '#5b8def'),
+      this.walletMetric('Pending Withdrawals', this.money(summary.pending_withdrawals), `${this.count(summary.pending_withdraw_count)} requests`, '#ffb627'),
+      this.walletMetric('Bonus Funds', this.money(summary.bonus_funds), 'Bonus balances held by users', '#a78bfa'),
+    ];
+    const rows = Array.isArray(response?.data) ? response.data : [];
+    this.funds.splice(0, this.funds.length, ...rows.map((item: any) => {
+      const pending = Number(item.pending_withdrawal) || 0;
+      return {
+        user: String(item.name ?? 'Unknown user'), id: String(item.usercode ?? item.user_id ?? '—'), initials: this.initials(item.name),
+        balance: this.money(item.balance), depositBalance: this.money(item.deposit_balance), winningBalance: this.money(item.winning_balance), bonus: this.money(item.bonus_balance), withdrawal: this.money(pending),
+        depositDate: item.last_deposit_at ? this.shortDate(item.last_deposit_at) : '—',
+        withdrawalDate: item.last_withdrawal_at ? this.shortDate(item.last_withdrawal_at) : '—',
+        kyc: this.kycLabel(item.kyc_status), flag: String(item.flag ?? ''),
+        filters: [String(item.tier ?? '').toLowerCase(), ...(pending > 0 ? ['pending'] : []), ...(Number(item.balance) >= 1000 ? ['high'] : [])],
+      };
+    }));
+    this.screenDescription = `${this.count(response?.pagination?.total)} user balances · minimum balance ${this.money(1000)}`;
+    this.setPagination(response?.pagination, pageNumber);
+  }
+
+  private applyInactiveFunds(response: any, pageNumber: number): void {
+    const summary = response?.summary ?? {};
+    this.pages['inactive-funds'].metrics = [
+      this.walletMetric('Inactive User Funds', this.money(summary.inactive_user_funds), `${this.count(summary.inactive_users)} users · inactive ${this.count(summary.inactive_months)}+ months`, '#ffb627'),
+      this.walletMetric('Due Regulatory Transfer', this.money(summary.due_regulatory_transfer), 'Funds due for regulatory transfer', '#ff3b47'),
+      this.walletMetric('Reminders Sent (30d)', this.count(summary.reminders_sent_30d), 'Reminder notifications in the last 30 days', '#a78bfa'),
+      this.walletMetric('Inactive Users', this.count(summary.inactive_users), `${this.count(summary.inactive_months)} month inactivity threshold`, '#5b8def'),
+    ];
+    const rows = Array.isArray(response?.data) ? response.data : [];
+    this.inactiveRows.splice(0, this.inactiveRows.length, ...rows.map((item: any) => {
+      const monthsInactive = Number(item.inactive_months ?? item.months_inactive) || 0;
+      const due = Boolean(item.transfer_due ?? item.due_regulatory_transfer ?? monthsInactive >= 84);
+      const state: InactiveRow['state'] = due ? 'transfer-due' : monthsInactive >= 72 ? 'near-transfer' : 'monitoring';
+      return {
+        id: String(item.usercode ?? item.user_id ?? item.id ?? '—'), user: String(item.name ?? '[Unclaimed]'), balance: this.money(item.balance ?? item.inactive_balance),
+        lastActivity: (item.last_activity_at ?? item.last_activity) ? this.shortDate(item.last_activity_at ?? item.last_activity) : '—',
+        inactiveFor: monthsInactive ? `${Math.floor(monthsInactive / 12)}y ${monthsInactive % 12}m` : '—',
+        notifications: Number(item.reminders_sent ?? item.notifications_sent) || 0,
+        due: item.transfer_due_at ? this.shortDate(item.transfer_due_at) : '—', state,
+        filter: monthsInactive >= 84 ? '7+' : monthsInactive >= 24 ? '2-7' : '12-24',
+      };
+    }));
+    this.screenDescription = `${this.count(response?.pagination?.total)} inactive accounts · threshold ${this.count(summary.inactive_months)} months`;
+    this.setPagination(response?.pagination, pageNumber);
+  }
+
+  private walletMetric(label: string, value: string, detail: string, color: string): WalletMetric {
+    return { label, value, detail, color, spark: [] };
+  }
+
+  private setPagination(paging: any, requestedPage: number): void {
+    if (!paging) { this.pagination = null; return; }
+    this.pagination = { total: Number(paging.total) || 0, page: Number(paging.page) || requestedPage, limit: Number(paging.limit) || 20, totalPages: Math.max(1, Number(paging.totalPages) || 1) };
+  }
+
+  get pageRangeLabel(): string {
+    if (!this.pagination || !this.pagination.total) return 'Showing 0 of 0 records';
+    const start = (this.pagination.page - 1) * this.pagination.limit + 1;
+    const end = Math.min(this.pagination.page * this.pagination.limit, this.pagination.total);
+    return `Showing ${start}–${end} of ${this.pagination.total} records`;
+  }
+
+  private count(value: any): string { return new Intl.NumberFormat('en-GB').format(Number(value) || 0); }
+  private money(value: any): string { return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 2 }).format(Number(value) || 0); }
+  private moneyOrDash(value: any): string { return value === null || value === undefined ? '—' : this.money(value); }
+  private initials(name: any): string { const text = String(name ?? ''); return text ? text.split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase() : '?'; }
+  private kycLabel(value: any): string {
+    const status = String(value ?? '').toLowerCase();
+    return ['approved', 'passed', 'complete', 'completed'].includes(status) ? 'Approved'
+      : status === 'not_started' ? 'Not Started'
+        : status === 'pending' ? 'Pending'
+        : status ? status.replace(/_/g, ' ').replace(/^./, letter => letter.toUpperCase()) : 'Unknown';
+  }
+  private shortDate(value: any): string { const date = new Date(String(value)); return Number.isNaN(date.getTime()) ? String(value ?? '—') : new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date); }
+  private clockTime(value: any): string { const date = new Date(String(value)); return Number.isNaN(date.getTime()) ? String(value ?? '—') : new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(date); }
+  private relativeTime(value: any): string { const minutes = Math.max(0, Math.floor((Date.now() - new Date(String(value)).getTime()) / 60000)); return !Number.isFinite(minutes) ? '—' : minutes < 60 ? `${minutes}m` : minutes < 1440 ? `${Math.floor(minutes / 60)}h` : `${Math.floor(minutes / 1440)}d`; }
+  private signedMoney(value: number): string { return `${value >= 0 ? '+' : '−'}${this.money(Math.abs(value))}`; }
+  private transactionType(walletType: any, transactionType: any, remark: any): string {
+    const wallet = String(walletType ?? '').toLowerCase();
+    if (wallet === 'deposit') return 'Deposit';
+    if (wallet === 'withdrawal') return 'Withdrawal';
+    if (wallet === 'bonus') return 'Bonus';
+    if (wallet === 'winning') return String(transactionType).toLowerCase() === 'credit' ? 'Contest Win' : 'Contest Entry';
+    if (wallet === 'subscribe') return 'Subscription';
+    if (wallet === 'refund') return 'Refund';
+    return String(remark ?? walletType ?? 'Transaction');
+  }
+  private transactionFilter(walletType: any, transactionType: any, type: string): string {
+    const wallet = String(walletType ?? '').toLowerCase();
+    if (wallet === 'deposit' || wallet === 'withdrawal' || wallet === 'bonus' || wallet === 'refund') return wallet;
+    if (wallet === 'winning') return 'contest';
+    return String(transactionType).toLowerCase() === 'debit' ? 'withdrawal' : type.toLowerCase();
+  }
+  private depositFilter(method: any, status: any, flagged: boolean): string {
+    if (flagged) return 'failed';
+    if (String(status).toLowerCase() !== 'success') return String(status ?? '').toLowerCase();
+    const value = String(method ?? '').toLowerCase();
+    return value.includes('visa') ? 'visa' : value.includes('master') ? 'mastercard' : value.includes('bank') || value.includes('transfer') ? 'bank' : 'all';
+  }
+
+  previousPage(): void { if (this.pagination && this.pagination.page > 1) this.loadView(this.pagination.page - 1); }
+  nextPage(): void { if (this.pagination && this.pagination.page < this.pagination.totalPages) this.loadView(this.pagination.page + 1); }
 
   handleTopbarAction(index: number): void {
     const action = this.page.actions[index];
@@ -333,6 +671,8 @@ export class WalletComponent implements OnInit, OnDestroy {
   trackById(_index: number, row: { id: string }): string {
     return row.id;
   }
+
+  trackByDeposit(_index: number, row: DepositRow): string { return row.recordId ?? row.id; }
 
   ngOnDestroy(): void {
     this.routeData?.unsubscribe();

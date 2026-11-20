@@ -26,17 +26,60 @@
     <p class="notice" role="status" *ngIf="notice">{{ notice }}</p>
     <p class="notice" role="alert" *ngIf="errorNotice">{{ errorNotice }}</p>
 
+    <form class="deposit-limit-edit-form" *ngIf="isDepositLimitsView && selectedLimitRow" (submit)="submitDepositLimit($event)">
+      <div class="deposit-limit-form-heading">
+        <strong>Update limit for {{ selectedLimitRow.name }}</strong>
+        <span>User ID {{ selectedLimitRow.userId }}</span>
+      </div>
+      <label for="rg-deposit-limit">Monthly deposit limit</label>
+      <input id="rg-deposit-limit" name="deposit_limit" type="number" min="0" step="0.01" required
+        [value]="depositLimitValue" (input)="depositLimitValue = $any($event.target).value" />
+      <label for="rg-deposit-limit-reason">Reason</label>
+      <textarea id="rg-deposit-limit-reason" name="reason" rows="2" maxlength="1000" required
+        [value]="depositLimitReason" (input)="depositLimitReason = $any($event.target).value"
+        placeholder="Explain why the limit is changing"></textarea>
+      <div class="deposit-limit-form-actions">
+        <button type="button" class="page-button" (click)="cancelDepositLimitForm()">Cancel</button>
+        <button type="submit" class="page-button" [disabled]="depositLimitSubmitting || !depositLimitValue || !depositLimitReason.trim()">
+          {{ depositLimitSubmitting ? 'Saving…' : 'Save limit' }}
+        </button>
+      </div>
+    </form>
+
+    <form class="apply-limit-edit-form" *ngIf="isLimitChangesView && selectedLimitRequest" (submit)="submitApplyLimitChange($event)">
+      <div class="deposit-limit-form-heading">
+        <strong>{{ limitChangeAction === 'reject' ? 'Reject' : 'Apply' }} one limit change for {{ selectedLimitRequest.name }}</strong>
+        <span>Request ID {{ selectedLimitRequest.limitRequestId }}</span>
+      </div>
+      <label for="apply-limit-reason">Reason</label>
+      <textarea id="apply-limit-reason" name="reason" rows="2" maxlength="1000" required
+        [value]="applyLimitReason" (input)="applyLimitReason = $any($event.target).value"
+        placeholder="Enter why this request is being applied"></textarea>
+      <label class="force-limit-label" for="apply-limit-force" *ngIf="limitChangeAction === 'apply'">
+        <input id="apply-limit-force" name="force" type="checkbox"
+          [checked]="applyLimitForce" (change)="applyLimitForce = $any($event.target).checked" />
+        Force application
+      </label>
+      <div class="deposit-limit-form-actions">
+        <button type="button" class="page-button" (click)="cancelApplyLimitForm()">Cancel</button>
+        <button type="submit" class="page-button" [disabled]="applyLimitSubmitting || !applyLimitReason.trim()">
+          {{ applyLimitSubmitting ? (limitChangeAction === 'reject' ? 'Rejecting…' : 'Applying…') : (limitChangeAction === 'reject' ? 'Reject One' : 'Apply One') }}
+        </button>
+      </div>
+    </form>
+
     <div class="table-scroll">
       <table class="rg-table">
         <thead>
           <tr>
             <th scope="col">User</th>
             <th scope="col" *ngFor="let heading of page.columns">{{ heading }}</th>
+            <th scope="col" *ngIf="isDepositLimitsView || isLimitChangesView">Action</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngIf="loading">
-            <td class="empty-state" [attr.colspan]="page.columns.length + 1">
+            <td class="empty-state" [attr.colspan]="page.columns.length + 1 + (isDepositLimitsView || isLimitChangesView ? 1 : 0)">
               {{ isLimitChangesView ? 'Loading limit-change records…' : isMonthlyLossView ? 'Loading monthly-loss users…' : isSelfExclusionView ? 'Loading self-exclusion records…' : isAlertsView ? 'Loading responsible-gaming alerts…' : 'Loading deposit-limit records…' }}
             </td>
           </tr>
@@ -59,9 +102,19 @@
               <span *ngIf="!cell.badge && !cell.action" class="cell-value"
                 [ngClass]="'tone-' + (cell.tone || 'default')">{{ cell.value }}</span>
             </td>
+            <td *ngIf="isDepositLimitsView">
+              <button type="button" class="row-action" [disabled]="row.userId === undefined || row.userId === null || row.userId === '' || depositLimitSubmitting"
+                (click)="openDepositLimitForm(row)">Update limit</button>
+            </td>
+            <td *ngIf="isLimitChangesView">
+              <button type="button" class="row-action" [disabled]="row.limitRequestId === undefined || row.limitRequestId === null || row.limitRequestId === '' || applyLimitSubmitting"
+                (click)="openApplyLimitForm(row)">Apply One</button>
+              <button type="button" class="row-action row-reject-action" [disabled]="row.limitRequestId === undefined || row.limitRequestId === null || row.limitRequestId === '' || applyLimitSubmitting"
+                (click)="openRejectLimitForm(row)">Reject One</button>
+            </td>
           </tr>
           <tr *ngIf="!loading && filteredRows.length === 0">
-            <td class="empty-state" [attr.colspan]="page.columns.length + 1">
+              <td class="empty-state" [attr.colspan]="page.columns.length + 1 + (isDepositLimitsView || isLimitChangesView ? 1 : 0)">
               <strong>{{ errorNotice ? (isLimitChangesView ? 'Limit changes are unavailable' : isMonthlyLossView ? 'Monthly-loss data is unavailable' : isSelfExclusionView ? 'Self-exclusion data is unavailable' : isAlertsView ? 'RG alerts are unavailable' : 'Deposit limits are unavailable') : 'No matching records' }}</strong>
               <span *ngIf="!errorNotice">Try another filter or search term.</span>
             </td>

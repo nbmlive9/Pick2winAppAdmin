@@ -1,0 +1,25 @@
+<section class="reports-grid">
+  <div class="report-controls"><label>From <input aria-label="Report start date" type="date" [(ngModel)]="from"></label><label>To <input aria-label="Report end date" type="date" [(ngModel)]="to"></label></div>
+  <p *ngIf="loadingCatalog" role="status">Loading report catalog…</p>
+  <p *ngIf="catalogError" role="alert">{{ catalogError }} <button type="button" (click)="loadCatalog()">Retry</button></p>
+  <article class="report-category" *ngFor="let category of categories">
+    <header><span class="category-icon" [style.background]="'linear-gradient(135deg, ' + color(category.category) + ', ' + color(category.category) + '88)'">{{ category.category.slice(0, 1) }}</span>
+      <span><strong>{{ category.category }}</strong><small>{{ category.reports.length }} reports</small></span></header>
+    <div class="report-list"><div class="report-row" *ngFor="let report of category.reports; trackBy: trackByKey">
+        <span class="report-info"><strong>{{ report.name }}</strong><small>{{ report.key }}</small></span>
+        <button type="button" class="download-button" (click)="runReport(report, category.category)" [disabled]="loadingReport" [attr.aria-label]="'Run ' + report.name">Run</button>
+      </div><p *ngIf="!category.reports.length">No reports in this category.</p>
+    </div>
+  </article>
+  <p *ngIf="!loadingCatalog && !catalogError && !categories.length">No reports are available.</p>
+
+  <section class="report-result" *ngIf="loadingReport || reportError || activeReport">
+    <p *ngIf="loadingReport" role="status">Generating report…</p>
+    <p *ngIf="reportError" role="alert">{{ reportError }} <button *ngIf="requestedReport" type="button" (click)="retryReport()">Retry</button></p>
+    <ng-container *ngIf="activeReport as result">
+      <header><div><h2>{{ result.name }}</h2><p>{{ result.category }} · {{ result.key }}</p></div><span>Generated {{ date(result.generated_at) }} · {{ result.count ?? rows.length }} rows</span></header>
+      <div class="report-table-scroll" *ngIf="rows.length && columns.length"><table><thead><tr><th *ngFor="let column of columns">{{ column }}</th></tr></thead><tbody><tr *ngFor="let row of rows"><td *ngFor="let column of columns">{{ display(row[column]) }}</td></tr></tbody></table></div>
+      <p *ngIf="!rows.length">This report returned no rows.</p>
+    </ng-container>
+  </section>
+</section>

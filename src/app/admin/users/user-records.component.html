@@ -5,8 +5,17 @@
       <span class="metric-change" *ngIf="item.change">↑ {{ item.change }}</span>
       <div class="metric-value">{{ item.value }}</div>
       <p>{{ item.detail }}</p>
-      <svg *ngIf="item.sparkline" class="metric-sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
-        <polyline [attr.points]="item.sparkline" [attr.stroke]="item.color"></polyline>
+      <svg
+        *ngIf="item.sparkline"
+        class="metric-sparkline"
+        viewBox="0 0 100 32"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <polyline
+          [attr.points]="item.sparkline"
+          [attr.stroke]="item.color"
+        ></polyline>
       </svg>
     </article>
   </section>
@@ -19,14 +28,33 @@
       </div>
     </header>
 
-    <div class="filter-row" role="group" [attr.aria-label]="page.title + ' filters'">
-      <button *ngFor="let filter of page.filters" type="button" class="filter-chip"
-        [class.filter-active]="activeFilter === filter.key" [attr.aria-pressed]="activeFilter === filter.key"
-        (click)="setFilter(filter.key)">{{ filter.label }}</button>
-      <input *ngIf="isStudentView || isSubscriptionView" type="search"
-        [attr.aria-label]="isSubscriptionView ? 'Search subscriptions' : 'Search students'"
-        [placeholder]="isSubscriptionView ? 'Search subscriptions' : 'Search students'" [value]="searchTerm"
-        (input)="setSearchTerm($any($event.target).value)" />
+    <div
+      class="filter-row"
+      role="group"
+      [attr.aria-label]="page.title + ' filters'"
+    >
+      <button
+        *ngFor="let filter of page.filters"
+        type="button"
+        class="filter-chip"
+        [class.filter-active]="activeFilter === filter.key"
+        [attr.aria-pressed]="activeFilter === filter.key"
+        (click)="setFilter(filter.key)"
+      >
+        {{ filter.label }}
+      </button>
+      <input
+        *ngIf="isStudentView || isSubscriptionView"
+        type="search"
+        [attr.aria-label]="
+          isSubscriptionView ? 'Search subscriptions' : 'Search students'
+        "
+        [placeholder]="
+          isSubscriptionView ? 'Search subscriptions' : 'Search students'
+        "
+        [value]="searchTerm"
+        (input)="setSearchTerm($any($event.target).value)"
+      />
     </div>
 
     <p class="notice" role="status" *ngIf="notice">{{ notice }}</p>
@@ -36,48 +64,108 @@
         <thead>
           <tr>
             <th scope="col">User</th>
-            <th scope="col" *ngFor="let heading of page.columns">{{ heading }}</th>
+            <th scope="col" *ngFor="let heading of page.columns">
+              {{ heading }}
+            </th>
             <th scope="col" *ngIf="hasActions">Action</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let record of filteredRows">
             <td class="user-cell">
-              <a *ngIf="record.action === 'View profile'" class="user-avatar"
-                [routerLink]="record.profileUserId ? ['/admin/users/profile', record.profileUserId] : ['/admin/users/profile']"
-                [attr.aria-label]="'Open ' + record.name + ' profile'">
+              <a
+                *ngIf="record.action === 'View profile'"
+                class="user-avatar"
+                [routerLink]="
+                  record.profileUserId
+                    ? ['/admin/users/profile', record.profileUserId]
+                    : ['/admin/users/profile']
+                "
+                [attr.aria-label]="'Open ' + record.name + ' profile'"
+              >
                 {{ record.initials }}
               </a>
-              <span *ngIf="record.action !== 'View profile'" class="user-avatar" aria-hidden="true">{{ record.initials }}</span>
-              <a *ngIf="record.action === 'View profile'" class="user-name"
-                [routerLink]="record.profileUserId ? ['/admin/users/profile', record.profileUserId] : ['/admin/users/profile']">
+              <span
+                *ngIf="record.action !== 'View profile'"
+                class="user-avatar"
+                aria-hidden="true"
+                >{{ record.initials }}</span
+              >
+              <a
+                *ngIf="record.action === 'View profile'"
+                class="user-name"
+                [routerLink]="
+                  record.profileUserId
+                    ? ['/admin/users/profile', record.profileUserId]
+                    : ['/admin/users/profile']
+                "
+              >
                 <strong>{{ record.name }}</strong><small>{{ record.id }}</small>
               </a>
               <span *ngIf="record.action !== 'View profile'" class="user-name">
-                <strong>{{ record.name }}</strong><small>{{ record.id }}</small>
+                <strong>{{ record.name }} </strong><small>{{
+                  record.id
+                }}</small>
               </span>
             </td>
             <td *ngFor="let item of record.cells">
-              <span class="cell-badge" *ngIf="item.badge" [ngClass]="'tone-' + (item.tone || 'muted')">{{ item.value }}</span>
-              <span class="cell-value" *ngIf="!item.badge" [ngClass]="'tone-' + (item.tone || 'default')">{{ item.value }}</span>
+              <span
+                class="cell-badge"
+                *ngIf="item.badge"
+                [ngClass]="'tone-' + (item.tone || 'muted')"
+                >{{ item.value }}</span
+              >
+              <span
+                class="cell-value"
+                *ngIf="!item.badge"
+                [ngClass]="'tone-' + (item.tone || 'default')"
+                >{{ item.value }}</span
+              >
               <span class="cell-progress" *ngIf="item.progress !== undefined">
-                <span [style.width.%]="item.progress" [ngClass]="'progress-' + (item.tone || 'blue')"></span>
+                <span
+                  [style.width.%]="item.progress"
+                  [ngClass]="'progress-' + (item.tone || 'blue')"
+                ></span>
               </span>
             </td>
             <td *ngIf="record.action">
-              <a *ngIf="record.action === 'View profile'" class="row-action"
-                [routerLink]="record.profileUserId ? ['/admin/users/profile', record.profileUserId] : ['/admin/users/profile']"
-                [ngClass]="'tone-' + (record.actionTone || 'blue')">{{ record.action }}</a>
-              <button *ngIf="record.action !== 'View profile'" type="button"
-                class="row-action" [ngClass]="'tone-' + (record.actionTone || 'blue')"
-                (click)="notice = record.action + ' selected for ' + record.name + '.'">{{ record.action }}</button>
+              <a
+                *ngIf="record.action === 'View profile'"
+                class="row-action"
+                [routerLink]="
+                  record.profileUserId
+                    ? ['/admin/users/profile', record.profileUserId]
+                    : ['/admin/users/profile']
+                "
+                [ngClass]="'tone-' + (record.actionTone || 'blue')"
+                >{{ record.action }}</a
+              >
+              <button
+                *ngIf="record.action !== 'View profile'"
+                type="button"
+                class="row-action"
+                [ngClass]="'tone-' + (record.actionTone || 'blue')"
+                (click)="
+                  notice = record.action + ' selected for ' + record.name + '.'
+                "
+              >
+                {{ record.action }}
+              </button>
             </td>
           </tr>
           <tr *ngIf="loading">
-            <td class="empty-state" [attr.colspan]="page.columns.length + (hasActions ? 2 : 1)">Loading records…</td>
+            <td
+              class="empty-state"
+              [attr.colspan]="page.columns.length + (hasActions ? 2 : 1)"
+            >
+              Loading records…
+            </td>
           </tr>
           <tr *ngIf="!loading && filteredRows.length === 0">
-            <td class="empty-state" [attr.colspan]="page.columns.length + (hasActions ? 2 : 1)">
+            <td
+              class="empty-state"
+              [attr.colspan]="page.columns.length + (hasActions ? 2 : 1)"
+            >
               <strong>No matching records</strong>
               <span>Try another filter or search term.</span>
             </td>
@@ -86,13 +174,58 @@
       </table>
     </div>
     <footer class="table-footer">
-      <span>{{ activeServerPagination ? serverRangeLabel : isStudentView || isSubscriptionView || isConsentView || isDeletedView ? (loading ? 'Loading records…' : (isSubscriptionView ? 'Subscription records unavailable' : isConsentView ? 'Consent records unavailable' : isDeletedView ? 'Deleted account records unavailable' : 'Student records unavailable')) : 'Showing ' + filteredRows.length + ' of ' + page.rows.length + ' records' }}</span>
-      <div class="pagination-controls" *ngIf="activeServerPagination as pagination">
-        <button type="button" (click)="previousServerPage()" [disabled]="pagination.page <= 1">Previous</button>
+      <span>{{
+        activeServerPagination
+          ? serverRangeLabel
+          : isStudentView ||
+              isSubscriptionView ||
+              isConsentView ||
+              isDeletedView
+            ? loading
+              ? 'Loading records…'
+              : isSubscriptionView
+                ? 'Subscription records unavailable'
+                : isConsentView
+                  ? 'Consent records unavailable'
+                  : isDeletedView
+                    ? 'Deleted account records unavailable'
+                    : 'Student records unavailable'
+            : 'Showing ' +
+              filteredRows.length +
+              ' of ' +
+              page.rows.length +
+              ' records'
+      }}</span>
+      <div
+        class="pagination-controls"
+        *ngIf="activeServerPagination as pagination"
+      >
+        <button
+          type="button"
+          (click)="previousServerPage()"
+          [disabled]="pagination.page <= 1"
+        >
+          Previous
+        </button>
         <span>Page {{ pagination.page }} of {{ pagination.totalPages }}</span>
-        <button type="button" (click)="nextServerPage()" [disabled]="pagination.page >= pagination.totalPages">Next</button>
+        <button
+          type="button"
+          (click)="nextServerPage()"
+          [disabled]="pagination.page >= pagination.totalPages"
+        >
+          Next
+        </button>
       </div>
-      <span *ngIf="!activeServerPagination && !isStudentView && !isSubscriptionView && !isConsentView && !isDeletedView">Data shown for demonstration</span>
+      <span
+        *ngIf="
+          !activeServerPagination &&
+          !isStudentView &&
+          !isSubscriptionView &&
+          !isConsentView &&
+          !isDeletedView
+        "
+        >Data shown for demonstration</span
+      >
     </footer>
   </section>
 </div>
