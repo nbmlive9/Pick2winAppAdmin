@@ -61,8 +61,19 @@
       <section><h3>Recent Activity</h3><div class="activity-list">
         <div *ngFor="let item of activity"><time>{{ formatDate(item.created_at) }}</time><span>{{ item.remark }} · {{ item.wallettype }} {{ item.transtype }}</span><b [class.positive]="item.signed_amount > 0" [class.pending]="item.signed_amount < 0">{{ formatMoney(item.signed_amount) }}</b></div>
         <p *ngIf="activity.length === 0" class="detail-note">No recent activity returned.</p></div></section>
-      <label class="note-label" for="decision-note">Admin Note</label><textarea id="decision-note" [value]="detail.review_note || ''" placeholder="Add justification for decision…"></textarea>
-      <div class="decision-actions"><button type="button" (click)="handleDecision('Hold')">Hold</button><button type="button" (click)="handleDecision('Request Verification')">Request Verification</button><button type="button" class="reject-button" (click)="handleDecision('Reject')">Reject</button><button type="button" class="approve-button" (click)="handleDecision('Approve')">Approve</button></div>
+      <label class="note-label" for="decision-note">Action Note</label>
+      <textarea id="decision-note" name="withdrawalNote" [(ngModel)]="withdrawalNote" placeholder="Example: Checking linked accounts"></textarea>
+      <div class="decision-actions">
+        <button type="button" (click)="holdSelectedWithdrawal()" [disabled]="actionSubmitting">{{ actionSubmitting ? 'Working…' : 'Hold' }}</button>
+        <button type="button" (click)="showVerificationForm = !showVerificationForm" [disabled]="actionSubmitting">Request Verification</button>
+        <button type="button" (click)="addSelectedWithdrawalNote()" [disabled]="actionSubmitting">Add Note</button>
+        <button type="button" class="approve-button" (click)="releaseSelectedWithdrawal()" [disabled]="actionSubmitting">Release Withdrawal</button>
+      </div>
+      <form *ngIf="showVerificationForm" class="verification-request-form" (ngSubmit)="submitVerificationRequest()">
+        <label class="note-label" for="verification-message">Message to the user</label>
+        <textarea id="verification-message" name="verificationMessage" [(ngModel)]="verificationMessage" placeholder="Example: Please confirm your bank account." required></textarea>
+        <div class="decision-actions"><button type="submit" [disabled]="actionSubmitting">{{ actionSubmitting ? 'Sending…' : 'Send Request' }}</button><button type="button" (click)="showVerificationForm = false">Cancel</button></div>
+      </form>
     </div>
     <ng-template #detailLoadingTemplate><div class="detail-content"><p class="empty-state">{{ detailLoading ? 'Loading review details…' : 'Review details are unavailable.' }}</p></div></ng-template>
   </aside>

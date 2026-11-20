@@ -22,10 +22,10 @@
 }
 
 .records-card {
-  display: grid;
+  display: flex;
   min-width: 0;
   min-height: 0;
-  grid-template-rows: auto auto auto auto minmax(0, 1fr) auto;
+  flex-direction: column;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .08);
   border-radius: 13px;
@@ -134,7 +134,10 @@
 }
 
 .deposit-limit-edit-form,
-.apply-limit-edit-form {
+.apply-limit-edit-form,
+.intervention-edit-form,
+.bulk-intervention-form,
+.rg-mutation-form {
   display: grid;
   min-width: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -165,7 +168,10 @@
 }
 
 .deposit-limit-edit-form label,
-.apply-limit-edit-form label {
+.apply-limit-edit-form label,
+.intervention-edit-form label,
+.bulk-intervention-form label,
+.rg-mutation-form label {
   color: #aeb7cd;
   font-size: 12px;
 }
@@ -173,7 +179,13 @@
 .deposit-limit-edit-form input,
 .deposit-limit-edit-form textarea,
 .apply-limit-edit-form input:not([type='checkbox']),
-.apply-limit-edit-form textarea {
+.apply-limit-edit-form textarea,
+.intervention-edit-form input,
+.intervention-edit-form textarea,
+.bulk-intervention-form input:not([type='checkbox']),
+.bulk-intervention-form textarea,
+.rg-mutation-form input:not([type='checkbox']),
+.rg-mutation-form textarea {
   width: 100%;
   min-width: 0;
   padding: 8px 10px;
@@ -183,6 +195,53 @@
   color: #e4e8f2;
   background: #111521;
   font: inherit;
+}
+
+.rg-screen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.bulk-user-picker {
+  display: grid;
+  max-height: 190px;
+  min-width: 0;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 7px;
+  overflow: auto;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 8px;
+}
+
+.bulk-user-picker legend {
+  padding: 0 5px;
+  color: #aeb7cd;
+  font-size: 12px;
+}
+
+.bulk-user-option {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  overflow-wrap: anywhere;
+}
+
+.bulk-user-option input[type='checkbox'] {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  accent-color: #5b8def;
+}
+
+.bulk-user-option small {
+  color: #8e98b2;
 }
 
 .deposit-limit-form-actions {
@@ -202,7 +261,7 @@
 }
 
 .table-scroll {
-  grid-row: auto;
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
   min-height: 0;
@@ -418,7 +477,7 @@
 }
 
 .rg-pagination {
-  grid-row: 4;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -499,6 +558,19 @@
 
   .rg-table {
     min-width: 800px;
+  }
+
+  .deposit-limit-edit-form,
+  .apply-limit-edit-form,
+  .intervention-edit-form,
+  .bulk-intervention-form,
+  .rg-mutation-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .deposit-limit-form-heading {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

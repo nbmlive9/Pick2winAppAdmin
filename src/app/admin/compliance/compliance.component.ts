@@ -26,6 +26,37 @@ export class ComplianceComponent implements OnInit, OnDestroy {
   selectedCase: any = null;
   selectedCaseLoading = false;
   selectedCaseError = '';
+  selectedCaseId: string | number | null = null;
+  showCreateCaseForm = false;
+  createCaseUserId = '';
+  createCaseType = 'aml';
+  createCaseTitle = 'Rapid deposits';
+  createCaseTrigger = '3 deposits £2,400 in 18m';
+  createCaseRiskScore = '88';
+  createCaseAmount = '2400';
+  createCaseNote = 'Opened from AML alert';
+  caseMutationSubmitting = false;
+  caseUpdateStatus = 'investigating';
+  caseAssignedTo = '1';
+  caseUpdateNote = 'Taking this one';
+  caseNoteText = 'Requested bank statements';
+  caseActionType = 'hold';
+  selectedCaseForm: 'update' | 'note' | 'action' | null = null;
+  caseActionNote = 'Pending review';
+  caseActionMessage = 'Please upload 3 months of bank statements.';
+  caseSarRef = 'SAR-2026-001';
+  caseActionSubmitting = false;
+  kyc1User: ComplianceRow | null = null;
+  kyc1Status = 'approved';
+  kyc1Reason = 'Documents verified manually';
+  kyc1Submitting = false;
+  showSofChaseForm = false;
+  sofChaseDays = '14';
+  sofChaseSubmitting = false;
+  sofUser: ComplianceRow | null = null;
+  sofVerified = true;
+  sofReason = 'Payslips approved';
+  sofSubmitting = false;
 
   constructor(private readonly route: ActivatedRoute, private readonly admin: AdminService) {}
 
@@ -40,6 +71,12 @@ export class ComplianceComponent implements OnInit, OnDestroy {
       this.errorNotice = '';
       this.pagination = null;
       this.selectedCase = null;
+      this.selectedCaseId = null;
+      this.selectedCaseForm = null;
+      this.showCreateCaseForm = false;
+      this.kyc1User = null;
+      this.showSofChaseForm = false;
+      this.sofUser = null;
       this.loadCurrentView(1);
     });
   }
@@ -259,7 +296,7 @@ export class ComplianceComponent implements OnInit, OnDestroy {
     const caseReference = item.case_id ?? item.ref ?? item.case_ref ?? item.id;
     const caseId = String(item.id ?? item.case_id ?? item.ref ?? item.case_ref ?? '');
     const typeFilter = ['aml', 'sof', 'kyc1', 'pep', 'fraud'].find(key => type.toLowerCase().includes(key)) ?? type.toLowerCase().split(/[^a-z0-9]+/)[0];
-    return this.makeRow([
+    const row = this.makeRow([
       this.cell(caseReference, 'mono', 'blue', caseId),
       this.cell(item.name ?? item.user_name, 'person', undefined, item.usercode ?? item.user_id),
       this.cell(type, 'badge'), this.cell(item.trigger ?? item.reason),
@@ -268,6 +305,9 @@ export class ComplianceComponent implements OnInit, OnDestroy {
       this.cell(item.assignee ?? item.assigned_to ?? 'Unassigned', 'badge', 'blue'),
       this.cell(item.status ?? 'Open', 'badge', 'amber'),
     ], typeFilter);
+    row.caseId = item.id ?? item.case_id ?? item.ref ?? item.case_ref;
+    row.userId = item.user_id ?? item.userid;
+    return row;
   }
 
   private kyc0Row(item: any): ComplianceRow {
@@ -290,7 +330,7 @@ export class ComplianceComponent implements OnInit, OnDestroy {
   private kyc1Row(item: any): ComplianceRow {
     const status = String(item.kyc_status ?? item.status ?? 'not_started').toLowerCase();
     const filter = status === 'approved' || status === 'completed' ? 'pass' : status === 'rejected' ? 'retry' : status === 'expired' ? 'expired' : 'manual';
-    return this.makeRow([
+    const row = this.makeRow([
       this.cell(item.name, 'person', undefined, item.usercode ?? item.user_id),
       this.cell(item.doc_type ?? item.document_type ?? '—'),
       this.cell(item.sumsub_applicant ?? '—', 'mono'),
@@ -298,8 +338,10 @@ export class ComplianceComponent implements OnInit, OnDestroy {
       this.cell(item.registered_at ? this.formatDate(item.registered_at) : '—', 'mono'),
       this.cell(item.trigger ?? '—'),
       this.cell(status.replace(/_/g, ' '), 'badge', status === 'approved' ? 'green' : status === 'rejected' ? 'red' : 'amber'),
-      this.cell(status === 'pending' ? 'Review' : '', 'action', 'red'),
+      this.cell(status === 'approved' || status === 'completed' ? '' : 'Review', 'action', 'red'),
     ], filter);
+    row.userId = item.user_id ?? item.userid ?? item.id;
+    return row;
   }
 
   private amlRow(item: any): ComplianceRow {
@@ -316,13 +358,16 @@ export class ComplianceComponent implements OnInit, OnDestroy {
 
   private sofRow(item: any): ComplianceRow {
     const status = String(item.status ?? 'pending').toLowerCase();
-    return this.makeRow([
+    const row = this.makeRow([
       this.cell(item.name, 'person', undefined, item.usercode ?? item.user_id), this.cell(item.trigger ?? item.reason),
       this.cell(this.currency(item.amount ?? item.deposit_amount), 'mono'), this.cell(item.requested_at ? this.formatDate(item.requested_at) : '—', 'mono'),
       this.cell(item.evidence ?? item.evidence_status ?? '—', undefined, status === 'cleared' ? 'green' : 'amber'),
       this.cell(item.age ?? '—', 'mono'), this.cell(item.reviewer ?? item.assigned_to ?? 'Unassigned'),
       this.cell(status, 'badge', status === 'cleared' ? 'green' : status === 'overdue' ? 'red' : 'amber'),
+      this.cell(status !== 'cleared' ? 'Verify' : '', 'action', 'green'),
     ], status === 'evidence_received' ? 'evidence' : status);
+    row.userId = item.user_id ?? item.userid ?? item.id;
+    return row;
   }
 
   private sofCandidateRow(item: any): ComplianceRow {
@@ -372,8 +417,10 @@ export class ComplianceComponent implements OnInit, OnDestroy {
   nextPage(): void { if (this.pagination && this.pagination.page < this.pagination.totalPages) this.loadCurrentView(this.pagination.page + 1); }
 
   selectCase(row: ComplianceRow): void {
-    const reference = row.cells[0]?.id || row.cells[0]?.text;
+    const reference = row.caseId ?? row.cells[0]?.id ?? row.cells[0]?.text;
     if (!reference || reference === '—') return;
+    this.selectedCaseId = reference;
+    this.selectedCaseForm = null;
     this.selectedCaseLoading = true;
     this.selectedCaseError = '';
     const sequence = ++this.caseRequestSequence;
@@ -393,12 +440,113 @@ export class ComplianceComponent implements OnInit, OnDestroy {
 
   handleTopbarAction(action: 'primary' | 'secondary'): void {
     const label = action === 'primary' ? this.page.primaryAction : this.page.secondaryAction;
+    if (action === 'secondary' && this.pageKey === 'cases') { this.showCreateCaseForm = !this.showCreateCaseForm; return; }
+    if (action === 'secondary' && this.pageKey === 'sof') { this.showSofChaseForm = !this.showSofChaseForm; return; }
     this.notice = `${label} selected.`;
   }
 
   handleRowAction(label: string, row: ComplianceRow): void {
     const person = row.cells.find(cell => cell.kind === 'person');
+    if (label === 'Review' && this.pageKey === 'kyc1' && row.userId != null) {
+      this.kyc1User = row; this.kyc1Status = 'approved'; this.kyc1Reason = 'Documents verified manually'; return;
+    }
+    if (label === 'Verify' && (this.pageKey === 'sof' || this.pageKey === 'sofCandidates') && row.userId != null) {
+      this.sofUser = row; this.sofVerified = true; this.sofReason = 'Payslips approved'; return;
+    }
     this.notice = `${label} selected${person ? ` for ${person.text}` : ''}.`;
+  }
+
+  openCaseForm(form: 'update' | 'note' | 'action'): void { this.selectedCaseForm = form; }
+  clearNotice(): void { this.notice = ''; this.errorNotice = ''; }
+
+  submitCreateCase(): void {
+    const userId = this.createCaseUserId.trim();
+    if (!userId || !this.createCaseTitle.trim()) { this.errorNotice = 'Enter a user ID and case title.'; return; }
+    this.caseMutationSubmitting = true; this.clearNotice();
+    this.admin.createCase({ user_id: /^\d+$/.test(userId) ? Number(userId) : userId, case_type: this.createCaseType,
+      title: this.createCaseTitle.trim(), trigger_text: this.createCaseTrigger.trim(), risk_score: Number(this.createCaseRiskScore),
+      amount: Number(this.createCaseAmount), note: this.createCaseNote.trim() }).subscribe({
+      next: response => { this.caseMutationSubmitting = false; if (response?.success === false) { this.errorNotice = response.message || 'Could not create the case.'; return; }
+        this.showCreateCaseForm = false; this.notice = response?.message || 'Case created successfully.'; this.loadCurrentView(1); },
+      error: error => { this.caseMutationSubmitting = false; this.mutationError(error, 'create case'); },
+    });
+  }
+
+  submitCaseUpdate(): void {
+    if (this.selectedCaseId == null) return;
+    this.caseMutationSubmitting = true; this.clearNotice();
+    const assigned = this.caseAssignedTo.trim();
+    this.admin.updateCase(this.selectedCaseId, { status: this.caseUpdateStatus, assigned_to: /^\d+$/.test(assigned) ? Number(assigned) : assigned, note: this.caseUpdateNote.trim() }).subscribe({
+      next: response => { this.caseMutationSubmitting = false; if (response?.success === false) { this.errorNotice = response.message || 'Could not update the case.'; return; }
+        this.notice = response?.message || 'Case updated successfully.'; this.selectedCaseForm = null; this.loadCurrentView(this.pagination?.page ?? 1); this.reloadSelectedCase(); },
+      error: error => { this.caseMutationSubmitting = false; this.mutationError(error, 'update case'); },
+    });
+  }
+
+  submitCaseNote(): void {
+    if (this.selectedCaseId == null || !this.caseNoteText.trim()) return;
+    this.caseMutationSubmitting = true; this.clearNotice();
+    this.admin.addCaseNote(this.selectedCaseId, this.caseNoteText.trim()).subscribe({
+      next: response => { this.caseMutationSubmitting = false; if (response?.success === false) { this.errorNotice = response.message || 'Could not add the note.'; return; }
+        this.notice = response?.message || 'Case note added successfully.'; this.selectedCaseForm = null; this.reloadSelectedCase(); },
+      error: error => { this.caseMutationSubmitting = false; this.mutationError(error, 'add case note'); },
+    });
+  }
+
+  submitCaseAction(): void {
+    if (this.selectedCaseId == null) return;
+    const payload: Record<string, unknown> = { action: this.caseActionType };
+    if (this.caseActionType === 'request_docs') payload['message'] = this.caseActionMessage.trim();
+    else if (this.caseActionType === 'file_sar') { payload['sar_ref'] = this.caseSarRef.trim(); payload['note'] = this.caseActionNote.trim(); }
+    else payload['note'] = this.caseActionNote.trim();
+    this.caseActionSubmitting = true; this.clearNotice();
+    this.admin.caseAction(this.selectedCaseId, payload).subscribe({
+      next: response => { this.caseActionSubmitting = false; if (response?.success === false) { this.errorNotice = response.message || 'Could not submit the case action.'; return; }
+        this.notice = response?.message || `Case action “${this.caseActionType}” completed.`; this.selectedCaseForm = null; this.loadCurrentView(this.pagination?.page ?? 1); this.reloadSelectedCase(); },
+      error: error => { this.caseActionSubmitting = false; this.mutationError(error, 'submit case action'); },
+    });
+  }
+
+  submitKyc1Update(): void {
+    const id = this.kyc1User?.userId;
+    if (id == null) return;
+    this.kyc1Submitting = true; this.clearNotice();
+    this.admin.updateKyc1(id, { kyc_status: this.kyc1Status, reason: this.kyc1Reason.trim() }).subscribe({
+      next: response => { this.kyc1Submitting = false; if (response?.success === false) { this.errorNotice = response.message || 'Could not update KYC1.'; return; }
+        this.notice = response?.message || 'KYC1 status updated.'; this.kyc1User = null; this.loadCurrentView(this.pagination?.page ?? 1); },
+      error: error => { this.kyc1Submitting = false; this.mutationError(error, 'update KYC1'); },
+    });
+  }
+
+  submitSofChase(): void {
+    const days = Number(this.sofChaseDays);
+    if (!Number.isInteger(days) || days < 1) { this.errorNotice = 'Enter a number of days greater than zero.'; return; }
+    this.sofChaseSubmitting = true; this.clearNotice();
+    this.admin.chaseOverdueSof(days).subscribe({
+      next: response => { this.sofChaseSubmitting = false; if (response?.success === false) { this.errorNotice = response.message || 'Could not chase overdue SoF requests.'; return; }
+        this.notice = response?.message || `Overdue SoF requests chased for ${days} days.`; this.showSofChaseForm = false; this.loadCurrentView(this.pagination?.page ?? 1); },
+      error: error => { this.sofChaseSubmitting = false; this.mutationError(error, 'chase overdue SoF requests'); },
+    });
+  }
+
+  submitSofUpdate(): void {
+    const id = this.sofUser?.userId;
+    if (id == null) return;
+    this.sofSubmitting = true; this.clearNotice();
+    this.admin.updateSof(id, { verified: this.sofVerified, reason: this.sofReason.trim() }).subscribe({
+      next: response => { this.sofSubmitting = false; if (response?.success === false) { this.errorNotice = response.message || 'Could not update SoF verification.'; return; }
+        this.notice = response?.message || 'Source-of-funds status updated.'; this.sofUser = null; this.loadCurrentView(this.pagination?.page ?? 1); },
+      error: error => { this.sofSubmitting = false; this.mutationError(error, 'update source of funds'); },
+    });
+  }
+
+  private reloadSelectedCase(): void {
+    const id = this.selectedCaseId;
+    if (id != null) this.selectCase({ caseId: id, cells: [{ text: String(id) }], filters: [] });
+  }
+
+  private mutationError(error: any, operation: string): void {
+    this.errorNotice = error?.error?.message || (error?.status === 0 ? 'The Compliance API could not be reached.' : `Could not ${operation} (HTTP ${error?.status ?? 'error'}).`);
   }
 
   trackByIndex(index: number): number {

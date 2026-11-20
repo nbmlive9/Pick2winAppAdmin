@@ -33,6 +33,36 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
   applyLimitForce = false;
   applyLimitSubmitting = false;
   limitChangeAction: 'apply' | 'reject' = 'apply';
+  selectedInterventionUser: RgRow | null = null;
+  interventionChannel = 'notification';
+  interventionTitle = 'Time for a break?';
+  interventionMessage = "You've had a few tough months. Set a lower limit in Settings.";
+  interventionSubmitting = false;
+  showBulkInterventionForm = false;
+  selectedBulkUsers: RgRow[] = [];
+  bulkInterventionChannel = 'notification';
+  bulkInterventionTitle = 'Responsible gaming check-in';
+  bulkInterventionMessage = 'Tools to help you stay in control are in Settings.';
+  bulkInterventionSubmitting = false;
+  showCreateSelfExclusionForm = false;
+  selfExclusionUserId = '';
+  selfExclusionDuration = '6M';
+  selfExclusionGamstopStatus = 'pending';
+  selfExclusionReason = 'User request';
+  selectedSelfExclusion: RgRow | null = null;
+  selfExclusionUpdateGamstopStatus = 'registered';
+  selfExclusionMarketingBlocked = true;
+  selfExclusionSubmitting = false;
+  selectedRgAlert: RgRow | null = null;
+  rgAlertStatus = 'resolved';
+  rgAlertActionTaken = 'Phoned user, limit reduced';
+  rgAlertSubmitting = false;
+  bulkAlertFormOpen = false;
+  selectedBulkAlerts: RgRow[] = [];
+  bulkAlertTitle = "We're here to help";
+  bulkAlertMessage = 'See our safer gambling tools.';
+  bulkAlertSubmitting = false;
+  scanningRgAlerts = false;
   pagination: {
     total: number;
     page: number;
@@ -75,11 +105,22 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
     this.loading = false;
     this.errorNotice = '';
     this.pagination = null;
+    this.showBulkInterventionForm = false;
+    this.selectedBulkUsers = [];
+    this.selectedInterventionUser = null;
     this.isDepositLimitsView = view === 'deposit-limits';
     this.isLimitChangesView = view === 'limit-reductions';
     this.isMonthlyLossView = view === 'monthly-loss';
     this.isSelfExclusionView = view === 'self-exclusion';
     this.isAlertsView = view === 'alerts';
+    this.showCreateSelfExclusionForm = false;
+    this.selectedSelfExclusion = null;
+    this.selectedRgAlert = null;
+    this.bulkAlertFormOpen = false;
+    this.selectedBulkAlerts = [];
+    this.showBulkInterventionForm = false;
+    this.selectedBulkUsers = [];
+    this.selectedInterventionUser = null;
     this.page = rgRecordsPages[view];
     this.activeFilter = 'all';
     this.searchTerm = '';
@@ -170,8 +211,14 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
                 { value: hasLimit ? 'Set' : 'None', tone: hasLimit ? 'green' : 'amber', badge: true },
                 { value: sent ? 'Sent' : 'Not sent', tone: sent ? 'green' : 'red', badge: true },
                 { value: lastAction == null ? '—' : this.formatRecordDate(lastAction), tone: 'muted' },
-                { value: status, tone: sent ? 'green' : 'red', badge: true },
+                {
+                  value: sent ? status : 'Intervene',
+                  tone: sent ? 'green' : 'red',
+                  badge: sent,
+                  action: !sent,
+                },
               ],
+              userId: item.user_id ?? item.userid ?? item.id,
             };
           }),
         };
@@ -221,6 +268,10 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
             return {
               name: String(item.name ?? item.user_name ?? (item.user_id ? `User ${item.user_id}` : 'Excluded user')),
               id: String(item.usercode ?? item.user_id ?? '—'),
+              userId: item.user_id ?? item.userid,
+              selfExclusionId: item.self_exclusion_id ?? item.selfExclusionId ?? item.exclusion_id ?? item.id,
+              gamstopStatus: String(item.gamstop_status ?? item.gamstopStatus ?? (registered ? 'registered' : 'pending')),
+              marketingBlocked: marketingBlocked === true,
               filters: [
                 ...(normalizedStatus === 'active' ? ['active'] : []),
                 ...(registered ? ['gamstop'] : []),
@@ -343,6 +394,8 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
             return {
               name: String(item.user_name ?? item.name ?? item.usercode ?? 'Unknown user'),
               id: String(item.usercode ?? item.user_id ?? item.id ?? '—'),
+              alertId: item.alert_id ?? item.alertId ?? item.id,
+              userId: item.user_id ?? item.userid,
               filters: [
                 ...(resolvedRow ? ['resolved'] : []),
                 ...(!resolvedRow && ['high', 'medium', 'low'].includes(normalizedPriority) ? [normalizedPriority] : []),
@@ -807,7 +860,260 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (action === 'secondary' && this.isMonthlyLossView) {
+      this.openBulkInterventionForm();
+      return;
+    }
+
+    if (action === 'primary' && this.isAlertsView) {
+      this.markAllRgAlertsRead();
+      return;
+    }
+
+    if (action === 'secondary' && this.isAlertsView) {
+      this.openBulkAlertInterventionForm();
+      return;
+    }
+
     this.notice = `${action === 'primary' ? this.page.primaryAction : this.page.secondaryAction} selected.`;
+  }
+
+  openCreateSelfExclusionForm(): void {
+    this.notice = '';
+    this.errorNotice = '';
+    this.showCreateSelfExclusionForm = true;
+    this.selectedSelfExclusion = null;
+    this.selfExclusionUserId = '';
+    this.selfExclusionDuration = '6M';
+    this.selfExclusionGamstopStatus = 'pending';
+    this.selfExclusionReason = 'User request';
+  }
+
+  submitCreateSelfExclusion(event: Event): void {
+    event.preventDefault();
+    const userId = this.selfExclusionUserId.trim();
+    const duration = this.selfExclusionDuration.trim();
+    const gamstopStatus = this.selfExclusionGamstopStatus.trim();
+    const reason = this.selfExclusionReason.trim();
+    if (!userId || !duration || !gamstopStatus || !reason || this.selfExclusionSubmitting) return;
+    const normalizedUserId = Number.isFinite(Number(userId)) ? Number(userId) : userId;
+
+    this.selfExclusionSubmitting = true;
+    this.errorNotice = '';
+    this.notice = '';
+    this.admin.createSelfExclusion({
+      user_id: normalizedUserId,
+      duration,
+      gamstop_status: gamstopStatus,
+      reason,
+    }).subscribe({
+      next: (response: any) => {
+        this.selfExclusionSubmitting = false;
+        if (response?.success === false) {
+          this.errorNotice = response?.message || response?.error || 'The API did not create the self-exclusion.';
+          return;
+        }
+        this.showCreateSelfExclusionForm = false;
+        this.notice = response?.message || 'Self-exclusion created successfully.';
+        this.loadSelfExclusions(this.pagination?.page || 1);
+      },
+      error: (error: any) => {
+        this.selfExclusionSubmitting = false;
+        this.errorNotice = this.mutationError(error, 'create self-exclusion');
+      },
+    });
+  }
+
+  openSelfExclusionUpdate(row: RgRow): void {
+    if (row.selfExclusionId === undefined || row.selfExclusionId === null || row.selfExclusionId === '') {
+      this.errorNotice = 'This row does not include a self-exclusion ID, so it cannot be updated.';
+      return;
+    }
+    this.notice = '';
+    this.errorNotice = '';
+    this.showCreateSelfExclusionForm = false;
+    this.selectedSelfExclusion = row;
+    this.selfExclusionUpdateGamstopStatus = row.gamstopStatus || 'registered';
+    this.selfExclusionMarketingBlocked = row.marketingBlocked ?? true;
+  }
+
+  submitSelfExclusionUpdate(event: Event): void {
+    event.preventDefault();
+    const row = this.selectedSelfExclusion;
+    const status = this.selfExclusionUpdateGamstopStatus.trim();
+    if (row?.selfExclusionId === undefined || row.selfExclusionId === null || row.selfExclusionId === '' || !status || this.selfExclusionSubmitting) return;
+    this.selfExclusionSubmitting = true;
+    this.errorNotice = '';
+    this.notice = '';
+    this.admin.updateSelfExclusion(row.selfExclusionId, status, this.selfExclusionMarketingBlocked).subscribe({
+      next: (response: any) => {
+        this.selfExclusionSubmitting = false;
+        if (response?.success === false) {
+          this.errorNotice = response?.message || response?.error || 'The API did not update this self-exclusion.';
+          return;
+        }
+        this.selectedSelfExclusion = null;
+        this.notice = response?.message || `Self-exclusion updated for ${row.name}.`;
+        this.loadSelfExclusions(this.pagination?.page || 1);
+      },
+      error: (error: any) => {
+        this.selfExclusionSubmitting = false;
+        this.errorNotice = this.mutationError(error, 'update self-exclusion');
+      },
+    });
+  }
+
+  scanRgAlerts(): void {
+    if (this.scanningRgAlerts) return;
+    this.scanningRgAlerts = true;
+    this.notice = '';
+    this.errorNotice = '';
+    this.admin.scanRgAlerts().subscribe({
+      next: (response: any) => {
+        this.scanningRgAlerts = false;
+        if (response?.success === false) {
+          this.errorNotice = response?.message || response?.error || 'The alert scan did not complete.';
+          return;
+        }
+        this.notice = response?.message || 'RG alert scan completed.';
+        this.loadRgAlerts(this.pagination?.page || 1);
+      },
+      error: (error: any) => {
+        this.scanningRgAlerts = false;
+        this.errorNotice = this.mutationError(error, 'scan RG alerts');
+      },
+    });
+  }
+
+  markAllRgAlertsRead(): void {
+    if (this.rgAlertSubmitting) return;
+    this.rgAlertSubmitting = true;
+    this.notice = '';
+    this.errorNotice = '';
+    this.admin.markAllRgAlertsRead().subscribe({
+      next: (response: any) => {
+        this.rgAlertSubmitting = false;
+        if (response?.success === false) {
+          this.errorNotice = response?.message || response?.error || 'The API did not mark all RG alerts as read.';
+          return;
+        }
+        this.notice = response?.message || 'All RG alerts marked as read.';
+        this.loadRgAlerts(this.pagination?.page || 1);
+      },
+      error: (error: any) => {
+        this.rgAlertSubmitting = false;
+        this.errorNotice = this.mutationError(error, 'mark all RG alerts as read');
+      },
+    });
+  }
+
+  openRgAlertUpdate(row: RgRow): void {
+    if (row.alertId === undefined || row.alertId === null || row.alertId === '') {
+      this.errorNotice = 'This row does not include an alert ID, so it cannot be updated.';
+      return;
+    }
+    this.notice = '';
+    this.errorNotice = '';
+    this.selectedRgAlert = row;
+    this.rgAlertStatus = 'resolved';
+    this.rgAlertActionTaken = 'Phoned user, limit reduced';
+  }
+
+  submitRgAlertUpdate(event: Event): void {
+    event.preventDefault();
+    const row = this.selectedRgAlert;
+    const status = this.rgAlertStatus.trim();
+    const actionTaken = this.rgAlertActionTaken.trim();
+    if (row?.alertId === undefined || row.alertId === null || row.alertId === '' || !status || !actionTaken || this.rgAlertSubmitting) return;
+    this.rgAlertSubmitting = true;
+    this.notice = '';
+    this.errorNotice = '';
+    this.admin.updateRgAlert(row.alertId, status, actionTaken).subscribe({
+      next: (response: any) => {
+        this.rgAlertSubmitting = false;
+        if (response?.success === false) {
+          this.errorNotice = response?.message || response?.error || 'The API did not update this RG alert.';
+          return;
+        }
+        this.selectedRgAlert = null;
+        this.notice = response?.message || `RG alert for ${row.name} updated.`;
+        this.loadRgAlerts(this.pagination?.page || 1);
+      },
+      error: (error: any) => {
+        this.rgAlertSubmitting = false;
+        this.errorNotice = this.mutationError(error, 'update RG alert');
+      },
+    });
+  }
+
+  openBulkAlertInterventionForm(): void {
+    const eligible = this.filteredRows.filter(row => row.alertId !== undefined && row.alertId !== null && row.alertId !== '');
+    if (!eligible.length) {
+      this.errorNotice = 'No alert IDs are available for bulk intervention on this page.';
+      return;
+    }
+    this.notice = '';
+    this.errorNotice = '';
+    this.bulkAlertFormOpen = true;
+    this.selectedBulkAlerts = [];
+    this.bulkAlertTitle = "We're here to help";
+    this.bulkAlertMessage = 'See our safer gambling tools.';
+  }
+
+  isBulkAlertSelected(row: RgRow): boolean {
+    return this.selectedBulkAlerts.some(alert => String(alert.alertId) === String(row.alertId));
+  }
+
+  toggleBulkAlert(row: RgRow, checked: boolean): void {
+    if (row.alertId === undefined || row.alertId === null || row.alertId === '') return;
+    this.selectedBulkAlerts = checked
+      ? [...this.selectedBulkAlerts.filter(alert => String(alert.alertId) !== String(row.alertId)), row]
+      : this.selectedBulkAlerts.filter(alert => String(alert.alertId) !== String(row.alertId));
+  }
+
+  cancelBulkAlertIntervention(): void {
+    this.bulkAlertFormOpen = false;
+    this.selectedBulkAlerts = [];
+    this.bulkAlertSubmitting = false;
+  }
+
+  submitBulkAlertIntervention(event: Event): void {
+    event.preventDefault();
+    const alertIds = this.selectedBulkAlerts
+      .map(alert => alert.alertId)
+      .filter((id): id is string | number => id !== undefined && id !== null && id !== '')
+      .map(id => typeof id === 'string' && id.trim() !== '' && Number.isFinite(Number(id)) ? Number(id) : id);
+    const title = this.bulkAlertTitle.trim();
+    const message = this.bulkAlertMessage.trim();
+    if (!alertIds.length || !title || !message || this.bulkAlertSubmitting) return;
+    this.bulkAlertSubmitting = true;
+    this.notice = '';
+    this.errorNotice = '';
+    this.admin.createBulkAlertIntervention({ alert_ids: alertIds, title, message }).subscribe({
+      next: (response: any) => {
+        this.bulkAlertSubmitting = false;
+        if (response?.success === false) {
+          this.errorNotice = response?.message || response?.error || 'The API did not create alert interventions.';
+          return;
+        }
+        this.bulkAlertFormOpen = false;
+        this.selectedBulkAlerts = [];
+        this.notice = response?.message || `Intervention created for ${alertIds.length} selected alert${alertIds.length === 1 ? '' : 's'}.`;
+        this.loadRgAlerts(this.pagination?.page || 1);
+      },
+      error: (error: any) => {
+        this.bulkAlertSubmitting = false;
+        this.errorNotice = this.mutationError(error, 'create bulk alert intervention');
+      },
+    });
+  }
+
+  private mutationError(error: any, action: string): string {
+    return (typeof error.error?.message === 'string' && error.error.message) ||
+      (typeof error.error?.error === 'string' && error.error.error) ||
+      (error.status === 0
+        ? `Could not reach the ${action} API (network or CORS error).`
+        : `Could not ${action}: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`);
   }
 
   private applyDueLimitChanges(): void {
@@ -905,8 +1211,146 @@ export class RgRecordsComponent implements OnInit, OnDestroy {
     });
   }
 
-  handleRowAction(action: string, user: string): void {
-    this.notice = `${action} selected for ${user}.`;
+  handleRowAction(action: string, row: RgRow): void {
+    if (action.toLowerCase() === 'intervene' && this.isMonthlyLossView) {
+      this.openInterventionForm(row);
+      return;
+    }
+    this.notice = `${action} selected for ${row.name}.`;
+  }
+
+  openInterventionForm(row: RgRow): void {
+    if (row.userId === undefined || row.userId === null || row.userId === '') {
+      this.errorNotice = 'This user record does not include an account ID, so an intervention cannot be created.';
+      return;
+    }
+    this.notice = '';
+    this.errorNotice = '';
+    this.selectedInterventionUser = row;
+    this.showBulkInterventionForm = false;
+    this.interventionChannel = 'notification';
+    this.interventionTitle = 'Time for a break?';
+    this.interventionMessage = "You've had a few tough months. Set a lower limit in Settings.";
+  }
+
+  cancelInterventionForm(): void {
+    this.selectedInterventionUser = null;
+    this.interventionSubmitting = false;
+  }
+
+  submitIntervention(event: Event): void {
+    event.preventDefault();
+    const row = this.selectedInterventionUser;
+    const channel = this.interventionChannel.trim();
+    const title = this.interventionTitle.trim();
+    const message = this.interventionMessage.trim();
+    if (row?.userId === undefined || row.userId === null || row.userId === '' || !channel || !title || !message || this.interventionSubmitting) return;
+
+    this.interventionSubmitting = true;
+    this.notice = '';
+    this.errorNotice = '';
+    this.admin.createIntervention({
+      user_id: row.userId,
+      channel,
+      title,
+      message,
+    }).subscribe({
+      next: (response: any) => {
+        this.interventionSubmitting = false;
+        if (response?.success === false) {
+          this.errorNotice = response?.message || response?.error || 'The API did not create the intervention.';
+          return;
+        }
+        this.selectedInterventionUser = null;
+        this.notice = response?.message || `Intervention sent to ${row.name}.`;
+        this.loadMonthlyLossUsers(this.pagination?.page || 1);
+      },
+      error: (error: any) => {
+        this.interventionSubmitting = false;
+        this.errorNotice =
+          (typeof error.error?.message === 'string' && error.error.message) ||
+          (typeof error.error?.error === 'string' && error.error.error) ||
+          (error.status === 0
+            ? 'Could not reach the create intervention API (network or CORS error).'
+            : `Could not create intervention: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`);
+      },
+    });
+  }
+
+  openBulkInterventionForm(): void {
+    if (this.filteredRows.filter(row => row.userId !== undefined && row.userId !== null && row.userId !== '').length === 0) {
+      this.errorNotice = 'No users with account IDs are available for a bulk intervention on this page.';
+      return;
+    }
+    this.notice = '';
+    this.errorNotice = '';
+    this.selectedBulkUsers = [];
+    this.selectedInterventionUser = null;
+    this.bulkInterventionChannel = 'notification';
+    this.bulkInterventionTitle = 'Responsible gaming check-in';
+    this.bulkInterventionMessage = 'Tools to help you stay in control are in Settings.';
+    this.showBulkInterventionForm = true;
+  }
+
+  isBulkUserSelected(row: RgRow): boolean {
+    return this.selectedBulkUsers.some(user => String(user.userId) === String(row.userId));
+  }
+
+  toggleBulkInterventionUser(row: RgRow, checked: boolean): void {
+    if (row.userId === undefined || row.userId === null || row.userId === '') return;
+    this.selectedBulkUsers = checked
+      ? [...this.selectedBulkUsers.filter(user => String(user.userId) !== String(row.userId)), row]
+      : this.selectedBulkUsers.filter(user => String(user.userId) !== String(row.userId));
+  }
+
+  cancelBulkInterventionForm(): void {
+    this.showBulkInterventionForm = false;
+    this.selectedBulkUsers = [];
+    this.bulkInterventionSubmitting = false;
+  }
+
+  submitBulkIntervention(event: Event): void {
+    event.preventDefault();
+    const userIds = this.selectedBulkUsers
+      .map(user => user.userId)
+      .filter((id): id is string | number => id !== undefined && id !== null && id !== '')
+      .map(id => typeof id === 'string' && id.trim() !== '' && Number.isFinite(Number(id)) ? Number(id) : id);
+    const channel = this.bulkInterventionChannel.trim();
+    const title = this.bulkInterventionTitle.trim();
+    const message = this.bulkInterventionMessage.trim();
+    if (!userIds.length || !channel || !title || !message || this.bulkInterventionSubmitting) return;
+
+    this.bulkInterventionSubmitting = true;
+    this.notice = '';
+    this.errorNotice = '';
+    this.admin.createBulkIntervention({
+      user_ids: userIds,
+      channel,
+      title,
+      message,
+    }).subscribe({
+      next: (response: any) => {
+        this.bulkInterventionSubmitting = false;
+        if (response?.success === false) {
+          this.errorNotice = response?.message || response?.error || 'The API did not create the bulk intervention.';
+          return;
+        }
+        const selectedCount = userIds.length;
+        this.showBulkInterventionForm = false;
+        this.selectedBulkUsers = [];
+        this.notice = response?.message || `Intervention sent to ${selectedCount} selected user${selectedCount === 1 ? '' : 's'}.`;
+        this.loadMonthlyLossUsers(this.pagination?.page || 1);
+      },
+      error: (error: any) => {
+        this.bulkInterventionSubmitting = false;
+        this.errorNotice =
+          (typeof error.error?.message === 'string' && error.error.message) ||
+          (typeof error.error?.error === 'string' && error.error.error) ||
+          (error.status === 0
+            ? 'Could not reach the bulk intervention API (network or CORS error).'
+            : `Could not create bulk intervention: HTTP ${error.status}${error.statusText ? ` ${error.statusText}` : ''}.`);
+      },
+    });
   }
 
   exportCsv(): void {

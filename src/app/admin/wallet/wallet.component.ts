@@ -73,6 +73,7 @@ interface FundRow {
 
 interface InactiveRow {
   id: string;
+  userId?: string | number;
   user?: string;
   balance: string;
   lastActivity: string;
@@ -113,6 +114,10 @@ export class WalletComponent implements OnInit, OnDestroy {
   screenDescription = '';
   loading = false;
   errorNotice = '';
+  showInactiveReminderForm = false;
+  inactiveReminderMessage = 'You still have funds in your Pick2Win account.';
+  inactiveReminderSubmitting = false;
+  selectedInactiveUserIds = new Set<string>();
   pagination: { total: number; page: number; limit: number; totalPages: number } | null = null;
   operatorData: any = null;
   operatorRangeLabel = '';
@@ -587,6 +592,7 @@ export class WalletComponent implements OnInit, OnDestroy {
       const state: InactiveRow['state'] = due ? 'transfer-due' : monthsInactive >= 72 ? 'near-transfer' : 'monitoring';
       return {
         id: String(item.usercode ?? item.user_id ?? item.id ?? '—'), user: String(item.name ?? '[Unclaimed]'), balance: this.money(item.balance ?? item.inactive_balance),
+        userId: item.user_id ?? item.userid ?? item.id,
         lastActivity: (item.last_activity_at ?? item.last_activity) ? this.shortDate(item.last_activity_at ?? item.last_activity) : '—',
         inactiveFor: monthsInactive ? `${Math.floor(monthsInactive / 12)}y ${monthsInactive % 12}m` : '—',
         notifications: Number(item.reminders_sent ?? item.notifications_sent) || 0,
@@ -657,7 +663,52 @@ export class WalletComponent implements OnInit, OnDestroy {
 
   handleTopbarAction(index: number): void {
     const action = this.page.actions[index];
+    if (this.view === 'inactive-funds' && index === 1) { this.openInactiveReminder(); return; }
     if (action) this.notice = `${action.label.replace(/ ⌄$/, '')} selected.`;
+  }
+
+  toggleInactiveUser(row: InactiveRow): void {
+    if (row.userId == null) return;
+    const id = String(row.userId);
+    if (this.selectedInactiveUserIds.has(id)) this.selectedInactiveUserIds.delete(id);
+    else this.selectedInactiveUserIds.add(id);
+  }
+
+  openInactiveReminder(row?: InactiveRow): void {
+    this.notice = '';
+    this.errorNotice = '';
+    if (row) {
+      if (row.userId == null) { this.errorNotice = 'This account does not have a user ID for the reminder request.'; return; }
+      this.selectedInactiveUserIds = new Set([String(row.userId)]);
+    } else if (this.selectedInactiveUserIds.size === 0) {
+      this.errorNotice = 'Select at least one account before sending a reminder.';
+      return;
+    }
+    this.showInactiveReminderForm = true;
+  }
+
+  submitInactiveReminder(): void {
+    if (this.inactiveReminderSubmitting) return;
+    const message = this.inactiveReminderMessage.trim();
+    const userIds = [...this.selectedInactiveUserIds].map(id => /^\d+$/.test(id) ? Number(id) : id);
+    if (!userIds.length || !message) { this.errorNotice = 'Select one or more accounts and enter a reminder message.'; return; }
+    this.inactiveReminderSubmitting = true;
+    this.errorNotice = '';
+    this.notice = '';
+    this.admin.sendInactiveReminders(userIds, message).subscribe({
+      next: response => {
+        this.inactiveReminderSubmitting = false;
+        if (response?.success === false) { this.errorNotice = response.message || 'Could not send inactive-account reminders.'; return; }
+        this.notice = response?.message || `Reminder sent to ${userIds.length} account${userIds.length === 1 ? '' : 's'}.`;
+        this.showInactiveReminderForm = false;
+        this.selectedInactiveUserIds.clear();
+        this.loadView(this.pagination?.page ?? 1);
+      },
+      error: error => {
+        this.inactiveReminderSubmitting = false;
+        this.errorNotice = error?.error?.message || (error?.status === 0 ? 'The Wallet API could not be reached.' : `Reminder request failed (HTTP ${error?.status ?? 'error'}).`);
+      },
+    });
   }
 
   typeTone(type: string): string {

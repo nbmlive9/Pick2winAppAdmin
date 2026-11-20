@@ -91,7 +91,7 @@
 
   <ng-template #recordsView>
     <section class="metric-grid" aria-label="Wallet overview metrics">
-      <app-wallet-metric-card *ngFor="let metric of page.metrics" [metric]="metric"></app-wallet-metric-card>
+      <app-ops-metric-card *ngFor="let metric of page.metrics" [metric]="metric"></app-ops-metric-card>
     </section>
 
     <section class="panel table-panel records-panel">
@@ -112,6 +112,12 @@
       </header>
       <p *ngIf="notice" class="notice" role="status">{{ notice }}</p>
       <p *ngIf="errorNotice" class="notice" role="alert">{{ errorNotice }}</p>
+      <form *ngIf="view === 'inactive-funds' && showInactiveReminderForm" class="inactive-reminder-form" (ngSubmit)="submitInactiveReminder()">
+        <label>Reminder message<textarea name="inactiveReminderMessage" [(ngModel)]="inactiveReminderMessage" rows="3" required></textarea></label>
+        <span>{{ selectedInactiveUserIds.size }} account(s) selected</span>
+        <button type="submit" [disabled]="inactiveReminderSubmitting">{{ inactiveReminderSubmitting ? 'Sending…' : 'Send reminder' }}</button>
+        <button type="button" (click)="showInactiveReminderForm = false">Cancel</button>
+      </form>
       <div class="table-scroll" [ngSwitch]="view">
         <table *ngSwitchCase="'deposits'" class="wallet-table">
           <thead><tr><th>User</th><th>Amount</th><th>Method</th><th>Transaction ID</th><th>PSP</th><th>Time</th><th>KYC</th><th>Fee</th><th>Status</th></tr></thead>
@@ -163,9 +169,10 @@
         </table>
 
         <table *ngSwitchDefault class="wallet-table">
-          <thead><tr><th>User</th><th>Balance</th><th>Last Activity</th><th>Inactive For</th><th>Notifications</th><th>Transfer Due</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Select</th><th>User</th><th>Balance</th><th>Last Activity</th><th>Inactive For</th><th>Notifications</th><th>Transfer Due</th><th>Status</th><th></th></tr></thead>
           <tbody>
             <tr *ngFor="let row of filteredInactiveRows; trackBy: trackById" [class.row-alert]="row.state === 'transfer-due'">
+              <td><input type="checkbox" [disabled]="row.userId == null" [checked]="row.userId != null && selectedInactiveUserIds.has('' + row.userId)" [attr.aria-label]="'Select ' + (row.user || row.id)" (change)="toggleInactiveUser(row)"></td>
               <td><span class="person-cell"><i class="avatar avatar-unknown">{{ (row.user || '[Unclaimed]').startsWith('[') ? '?' : (row.user || '').charAt(0).toUpperCase() }}</i><span>{{ row.user || '[Unclaimed]' }}<small>{{ row.id }}</small></span></span></td>
               <td class="mono strong-cell" [class.negative-cell]="row.state === 'transfer-due'">{{ row.balance }}</td>
               <td class="mono muted-cell">{{ row.lastActivity }}</td>
@@ -174,12 +181,12 @@
               <td class="mono" [class.negative-cell]="row.state === 'transfer-due'" [class.muted-cell]="row.state !== 'transfer-due'">{{ row.due }}</td>
               <td><span class="status-pill" [ngClass]="row.state === 'transfer-due' ? 'status-failed' : row.state === 'near-transfer' ? 'status-warning' : 'status-neutral'"><i></i>{{ row.state === 'transfer-due' ? 'Transfer Due' : row.state === 'near-transfer' ? 'Near Transfer' : 'Monitoring' }}</span></td>
               <td><button class="row-button" [class.row-button-primary]="row.state === 'transfer-due'" type="button"
-                (click)="notice = (row.state === 'transfer-due' ? 'Transfer to UKGC' : 'Send Reminder') + ' selected for ' + row.id + '.'">
+                (click)="row.state === 'transfer-due' ? notice = 'Transfer to UKGC selected for ' + row.id + '.' : openInactiveReminder(row)">
                 {{ row.state === 'transfer-due' ? 'Transfer to UKGC' : 'Send Reminder' }}
               </button></td>
             </tr>
-            <tr *ngIf="loading"><td colspan="8" class="empty-state">Loading inactive funds…</td></tr>
-            <tr *ngIf="!loading && filteredInactiveRows.length === 0"><td colspan="8" class="empty-state">No matching inactive funds.</td></tr>
+            <tr *ngIf="loading"><td colspan="9" class="empty-state">Loading inactive funds…</td></tr>
+            <tr *ngIf="!loading && filteredInactiveRows.length === 0"><td colspan="9" class="empty-state">No matching inactive funds.</td></tr>
           </tbody>
         </table>
       </div>

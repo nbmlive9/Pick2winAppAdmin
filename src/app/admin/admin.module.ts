@@ -14,13 +14,11 @@ import { ReportsComponent } from './reports/reports.component';
 import { SubscriptionAnalyticsComponent } from './subscriptions/subscription-analytics.component';
 import { SupportTicketsComponent } from './support/support-tickets.component';
 import { ProfileComponent } from './profile/profile.component';
-import { RgMetricCardComponent } from './responsible-gaming/rg-metric-card.component';
 import { RgMonitorComponent } from './responsible-gaming/rg-monitor.component';
 import { RgRecordsComponent } from './responsible-gaming/rg-records.component';
 import { UserProfileComponent } from './users/user-profile.component';
 import { UserRecordsComponent } from './users/user-records.component';
 import { WalletCostAnalyticsComponent } from './wallet/wallet-cost-analytics.component';
-import { WalletMetricCardComponent } from './wallet/wallet-metric-card.component';
 import { WalletComponent } from './wallet/wallet.component';
 import { WithdrawalReviewComponent } from './wallet/withdrawal-review.component';
 
@@ -32,12 +30,10 @@ import { WithdrawalReviewComponent } from './wallet/withdrawal-review.component'
     ProfileComponent,
     UserProfileComponent,
     UserRecordsComponent,
-    RgMetricCardComponent,
     RgMonitorComponent,
     RgRecordsComponent,
     WalletComponent,
     WalletCostAnalyticsComponent,
-    WalletMetricCardComponent,
     WithdrawalReviewComponent,
     AuditComponent,
     BonusesComponent,

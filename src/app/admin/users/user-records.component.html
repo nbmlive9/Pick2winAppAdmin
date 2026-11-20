@@ -1,23 +1,6 @@
 <div class="records-page">
   <section class="metric-grid" aria-label="User statistics">
-    <article class="metric-card" *ngFor="let item of page.metrics">
-      <div class="metric-label">{{ item.label }}</div>
-      <span class="metric-change" *ngIf="item.change">↑ {{ item.change }}</span>
-      <div class="metric-value">{{ item.value }}</div>
-      <p>{{ item.detail }}</p>
-      <svg
-        *ngIf="item.sparkline"
-        class="metric-sparkline"
-        viewBox="0 0 100 32"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <polyline
-          [attr.points]="item.sparkline"
-          [attr.stroke]="item.color"
-        ></polyline>
-      </svg>
-    </article>
+    <app-ops-metric-card *ngFor="let item of page.metrics" [metric]="item"></app-ops-metric-card>
   </section>
 
   <section class="records-card">

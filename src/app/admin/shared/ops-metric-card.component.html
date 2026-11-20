@@ -6,8 +6,8 @@
     </span>
   </div>
   <strong class="metric-value">{{ metric.value }}</strong>
-  <p>{{ metric.detail }}</p>
-  <svg *ngIf="metric.spark?.length" class="metric-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
-    <polyline [attr.points]="points" [attr.stroke]="metric.color"></polyline>
+  <p *ngIf="metric.detail">{{ metric.detail }}</p>
+  <svg *ngIf="hasSparkline" class="metric-spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
+    <polyline [attr.points]="points" [attr.stroke]="metric.color || '#5b8def'"></polyline>
   </svg>
 </article>

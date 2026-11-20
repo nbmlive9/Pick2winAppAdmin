@@ -16,6 +16,38 @@ export class AdminService {
     private tokens: TokenService,
   ) {}
 
+  /* ================================================================
+   * PRIVATE HELPERS
+   * ================================================================ */
+
+  private complianceGet(path: string, params: HttpParams): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.get(`${this.Base_URL}/${path}`, { headers, params });
+  }
+
+  private compliancePost(path: string, body: unknown): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.post(`${this.Base_URL}/${path}`, body, { headers });
+  }
+
+  private compliancePut(path: string, body: unknown): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.put(`${this.Base_URL}/${path}`, body, { headers });
+  }
+
+  /* ================================================================
+   * DASHBOARD / HOME SCREEN
+   * ================================================================ */
+
   getDashboardHome(): Observable<any> {
     const token = this.tokens.get();
     const headers = token
@@ -32,6 +64,40 @@ export class AdminService {
     return this.http.get(`${this.Base_URL}/getrgoverview`, { headers });
   }
 
+  getOperatorWallet(): Observable<any> {
+    return this.complianceGet('getoperatorwallet', new HttpParams());
+  }
+
+  getBonusOverview(): Observable<any> {
+    return this.complianceGet('getbonusoverview', new HttpParams());
+  }
+
+  getSubscriptionOverview(page = 1, limit = 20, filter = 'expiring'): Observable<any> {
+    return this.complianceGet('getsubscriptionoverview', new HttpParams()
+      .set('page', page).set('limit', limit).set('filter', filter));
+  }
+
+  getSeriesOverview(page = 1, limit = 20, status = '', search = ''): Observable<any> {
+    return this.complianceGet('getseriesoverview', new HttpParams()
+      .set('page', page).set('limit', limit).set('status', status).set('search', search));
+  }
+
+  getMatchesOverview(page = 1, limit = 20, when = '', seriesId = '', search = ''): Observable<any> {
+    return this.complianceGet('getmatchesoverview', new HttpParams()
+      .set('page', page).set('limit', limit).set('when', when).set('series_id', seriesId).set('search', search));
+  }
+
+  getAuditOverview(page = 1, limit = 20): Observable<any> {
+    return this.complianceGet('getauditoverview', new HttpParams().set('page', page).set('limit', limit));
+  }
+
+  getComplianceOverview(page = 1, limit = 20): Observable<any> {
+    return this.complianceGet(
+      'getcomplianceoverview',
+      new HttpParams().set('page', page).set('limit', limit),
+    );
+  }
+
   getHighRiskUsers(page = 1, limit = 20): Observable<any> {
     const token = this.tokens.get();
     const headers = token
@@ -39,39 +105,6 @@ export class AdminService {
       : new HttpHeaders();
     const params = new HttpParams().set('page', page).set('limit', limit);
     return this.http.get(`${this.Base_URL}/gethighriskusers`, {
-      headers,
-      params,
-    });
-  }
-
-  getDepositLimits(
-    page = 1,
-    limit = 20,
-    filter = '',
-    search = '',
-  ): Observable<any> {
-    const token = this.tokens.get();
-    const headers = token
-      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
-      : new HttpHeaders();
-    const params = new HttpParams()
-      .set('page', page)
-      .set('limit', limit)
-      .set('filter', filter)
-      .set('search', search);
-    return this.http.get(`${this.Base_URL}/getdepositlimits`, {
-      headers,
-      params,
-    });
-  }
-
-  getLimitChanges(page = 1, limit = 20): Observable<any> {
-    const token = this.tokens.get();
-    const headers = token
-      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
-      : new HttpHeaders();
-    const params = new HttpParams().set('page', page).set('limit', limit);
-    return this.http.get(`${this.Base_URL}/getlimitchanges`, {
       headers,
       params,
     });
@@ -89,47 +122,9 @@ export class AdminService {
     });
   }
 
-  getSelfExclusions(
-    page = 1,
-    limit = 20,
-    filter = '',
-    search = '',
-  ): Observable<any> {
-    const token = this.tokens.get();
-    const headers = token
-      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
-      : new HttpHeaders();
-    const params = new HttpParams()
-      .set('page', page)
-      .set('limit', limit)
-      .set('filter', filter)
-      .set('search', search);
-    return this.http.get(`${this.Base_URL}/getselfexclusions`, {
-      headers,
-      params,
-    });
-  }
-
-  getRgAlerts(page = 1, limit = 20): Observable<any> {
-    const token = this.tokens.get();
-    const headers = token
-      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
-      : new HttpHeaders();
-    const params = new HttpParams().set('page', page).set('limit', limit);
-    return this.http.get(`${this.Base_URL}/getrgalerts`, { headers, params });
-  }
-
-  private complianceGet(path: string, params: HttpParams): Observable<any> {
-    const token = this.tokens.get();
-    const headers = token
-      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
-      : new HttpHeaders();
-    return this.http.get(`${this.Base_URL}/${path}`, { headers, params });
-  }
-
-  getOperatorWallet(): Observable<any> {
-    return this.complianceGet('getoperatorwallet', new HttpParams());
-  }
+  /* ================================================================
+   * TRANSACTIONS SCREEN
+   * ================================================================ */
 
   getDeposits(
     page = 1,
@@ -158,9 +153,9 @@ export class AdminService {
     );
   }
 
-  getBonusOverview(): Observable<any> {
-    return this.complianceGet('getbonusoverview', new HttpParams());
-  }
+  /* ================================================================
+   * USER FUNDS SCREEN
+   * ================================================================ */
 
   getBonusTransactions(
     page = 1,
@@ -200,6 +195,14 @@ export class AdminService {
     return this.complianceGet('getinactivefunds', params);
   }
 
+  sendInactiveReminders(userIds: Array<string | number>, message: string): Observable<any> {
+    return this.compliancePost('sendinactivereminders', { user_ids: userIds, message });
+  }
+
+  /* ================================================================
+   * WITHDRAWALS SCREEN
+   * ================================================================ */
+
   getWithdrawalQueue(page = 1, limit = 20): Observable<any> {
     return this.complianceGet(
       'getwithdrawalqueue',
@@ -211,26 +214,44 @@ export class AdminService {
     return this.complianceGet(`getwithdrawalreview/${encodeURIComponent(withdrawId)}`, new HttpParams());
   }
 
-  getComplianceOverview(page = 1, limit = 20): Observable<any> {
-    return this.complianceGet(
-      'getcomplianceoverview',
-      new HttpParams().set('page', page).set('limit', limit),
-    );
+  holdWithdrawal(withdrawId: string, note: string): Observable<any> {
+    return this.compliancePost(`holdwithdrawal/${encodeURIComponent(withdrawId)}`, { note });
   }
 
-  getCases(page = 1, limit = 20): Observable<any> {
-    return this.complianceGet(
-      'getcases',
-      new HttpParams().set('page', page).set('limit', limit),
-    );
+  releaseWithdrawal(withdrawId: string, note: string): Observable<any> {
+    return this.compliancePost(`releasewithdrawal/${encodeURIComponent(withdrawId)}`, { note });
   }
 
-  getCaseById(caseId: string | number): Observable<any> {
-    return this.complianceGet(
-      `getcasebyid/${encodeURIComponent(String(caseId))}`,
-      new HttpParams(),
-    );
+  addWithdrawalNote(withdrawId: string, note: string): Observable<any> {
+    return this.compliancePost(`addwithdrawalnote/${encodeURIComponent(withdrawId)}`, { note });
   }
+
+  requestWithdrawalVerification(withdrawId: string, message: string): Observable<any> {
+    return this.compliancePost(`requestwithdrawalverification/${encodeURIComponent(withdrawId)}`, { message });
+  }
+
+  /* ================================================================
+   * USER MANAGEMENT SCREEN
+   * ================================================================ */
+
+  getStudentUsers(page = 1, limit = 20, filter = ''): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    const params = new HttpParams()
+      .set('page', page)
+      .set('limit', limit)
+      .set('filter', filter);
+    return this.http.get(`${this.Base_URL}/getstudentusers`, {
+      headers,
+      params,
+    });
+  }
+
+  /* ================================================================
+   * KYC / AML / COMPLIANCE SCREEN
+   * ================================================================ */
 
   getKyc0(page = 1, limit = 20, filter = '', search = ''): Observable<any> {
     const params = new HttpParams()
@@ -286,19 +307,70 @@ export class AdminService {
     );
   }
 
-  getStudentUsers(page = 1, limit = 20, filter = ''): Observable<any> {
-    const token = this.tokens.get();
-    const headers = token
-      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
-      : new HttpHeaders();
-    const params = new HttpParams()
-      .set('page', page)
-      .set('limit', limit)
-      .set('filter', filter);
-    return this.http.get(`${this.Base_URL}/getstudentusers`, {
-      headers,
-      params,
-    });
+  updateKyc1(userId: string | number, payload: { kyc_status: string; reason: string }): Observable<any> {
+    return this.compliancePut(`updatekyc1/${encodeURIComponent(String(userId))}`, payload);
+  }
+
+  chaseOverdueSof(days: number): Observable<any> {
+    return this.compliancePost('chaseoverduesof', { days });
+  }
+
+  updateSof(userId: string | number, payload: { verified: boolean; reason: string }): Observable<any> {
+    return this.compliancePut(`updatesof/${encodeURIComponent(String(userId))}`, payload);
+  }
+
+  /* ================================================================
+   * CASES SCREEN
+   * ================================================================ */
+
+  getCases(page = 1, limit = 20): Observable<any> {
+    return this.complianceGet(
+      'getcases',
+      new HttpParams().set('page', page).set('limit', limit),
+    );
+  }
+
+  getCaseById(caseId: string | number): Observable<any> {
+    return this.complianceGet(
+      `getcasebyid/${encodeURIComponent(String(caseId))}`,
+      new HttpParams(),
+    );
+  }
+
+  createCase(payload: {
+    user_id: string | number;
+    case_type: string;
+    title: string;
+    trigger_text: string;
+    risk_score: number;
+    amount: number;
+    note: string;
+  }): Observable<any> {
+    return this.compliancePost('createcase', payload);
+  }
+
+  updateCase(caseId: string | number, payload: {
+    status: string;
+    assigned_to: string | number;
+    note: string;
+  }): Observable<any> {
+    return this.compliancePut(`updatecase/${encodeURIComponent(String(caseId))}`, payload);
+  }
+
+  addCaseNote(caseId: string | number, note: string): Observable<any> {
+    return this.compliancePost(`addcasenote/${encodeURIComponent(String(caseId))}`, { note });
+  }
+
+  caseAction(caseId: string | number, payload: Record<string, unknown>): Observable<any> {
+    return this.compliancePost(`caseaction/${encodeURIComponent(String(caseId))}`, payload);
+  }
+
+  /* ================================================================
+   * MATCH / CONTESTS SCREEN
+   * ================================================================ */
+
+  getMatchContests(matchId: string | number): Observable<any> {
+    return this.complianceGet(`getmatchcontests/${encodeURIComponent(String(matchId))}`, new HttpParams());
   }
 
   getSubscriptionUsers(
@@ -417,6 +489,55 @@ export class AdminService {
     );
   }
 
+  getDeletedAccounts(page = 1, limit = 20): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    const params = new HttpParams().set('page', page).set('limit', limit);
+    return this.http.get(`${this.Base_URL}/getdeletedaccounts`, {
+      headers,
+      params,
+    });
+  }
+
+  /* ================================================================
+   * DEPOSITS & LIMITS SCREEN
+   * ================================================================ */
+
+  getDepositLimits(
+    page = 1,
+    limit = 20,
+    filter = '',
+    search = '',
+  ): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    const params = new HttpParams()
+      .set('page', page)
+      .set('limit', limit)
+      .set('filter', filter)
+      .set('search', search);
+    return this.http.get(`${this.Base_URL}/getdepositlimits`, {
+      headers,
+      params,
+    });
+  }
+
+  getLimitChanges(page = 1, limit = 20): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    const params = new HttpParams().set('page', page).set('limit', limit);
+    return this.http.get(`${this.Base_URL}/getlimitchanges`, {
+      headers,
+      params,
+    });
+  }
+
   updateDepositLimit(
     userId: string | number,
     depositLimit: number,
@@ -476,41 +597,159 @@ export class AdminService {
     );
   }
 
-  getDeletedAccounts(page = 1, limit = 20): Observable<any> {
+  /* ================================================================
+   * RESPONSIBLE GAMING (RG) SCREEN
+   * ================================================================ */
+
+  getSelfExclusions(
+    page = 1,
+    limit = 20,
+    filter = '',
+    search = '',
+  ): Observable<any> {
     const token = this.tokens.get();
     const headers = token
       ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
       : new HttpHeaders();
-    const params = new HttpParams().set('page', page).set('limit', limit);
-    return this.http.get(`${this.Base_URL}/getdeletedaccounts`, {
+    const params = new HttpParams()
+      .set('page', page)
+      .set('limit', limit)
+      .set('filter', filter)
+      .set('search', search);
+    return this.http.get(`${this.Base_URL}/getselfexclusions`, {
       headers,
       params,
     });
   }
 
-  getSubscriptionOverview(page = 1, limit = 20, filter = 'expiring'): Observable<any> {
-    return this.complianceGet('getsubscriptionoverview', new HttpParams()
-      .set('page', page).set('limit', limit).set('filter', filter));
+  getRgAlerts(page = 1, limit = 20): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    const params = new HttpParams().set('page', page).set('limit', limit);
+    return this.http.get(`${this.Base_URL}/getrgalerts`, { headers, params });
   }
+
+  createIntervention(payload: {
+    user_id: string | number;
+    channel: string;
+    title: string;
+    message: string;
+  }): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.post(
+      `${this.Base_URL}/createintervention`,
+      payload,
+      { headers },
+    );
+  }
+
+  createBulkIntervention(payload: {
+    user_ids: Array<string | number>;
+    channel: string;
+    title: string;
+    message: string;
+  }): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.post(
+      `${this.Base_URL}/createbulkintervention`,
+      payload,
+      { headers },
+    );
+  }
+
+  createSelfExclusion(payload: {
+    user_id: string | number;
+    duration: string;
+    gamstop_status: string;
+    reason: string;
+  }): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.post(`${this.Base_URL}/createselfexclusion`, payload, { headers });
+  }
+
+  updateSelfExclusion(
+    selfExclusionId: string | number,
+    gamstopStatus: string,
+    marketingBlocked: boolean,
+  ): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.put(
+      `${this.Base_URL}/updateselfexclusion/${encodeURIComponent(String(selfExclusionId))}`,
+      { gamstop_status: gamstopStatus, marketing_blocked: marketingBlocked },
+      { headers },
+    );
+  }
+
+  scanRgAlerts(): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.request('POST', `${this.Base_URL}/scanrgalerts`, { headers });
+  }
+
+  markAllRgAlertsRead(): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.request('POST', `${this.Base_URL}/markallrgalertsread`, { headers });
+  }
+
+  updateRgAlert(
+    alertId: string | number,
+    status: string,
+    actionTaken: string,
+  ): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.put(
+      `${this.Base_URL}/updatergalert/${encodeURIComponent(String(alertId))}`,
+      { status, action_taken: actionTaken },
+      { headers },
+    );
+  }
+
+  createBulkAlertIntervention(payload: {
+    alert_ids: Array<string | number>;
+    title: string;
+    message: string;
+  }): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.post(`${this.Base_URL}/createbulkintervention`, payload, { headers });
+  }
+
+  /* ================================================================
+   * SUBSCRIPTION TRACKING SCREEN
+   * ================================================================ */
 
   getSubscriptionTracking(page = 1, limit = 20, filter = '', search = ''): Observable<any> {
     return this.complianceGet('getsubscriptiontracking', new HttpParams()
       .set('page', page).set('limit', limit).set('filter', filter).set('search', search));
   }
 
-  getSeriesOverview(page = 1, limit = 20, status = '', search = ''): Observable<any> {
-    return this.complianceGet('getseriesoverview', new HttpParams()
-      .set('page', page).set('limit', limit).set('status', status).set('search', search));
-  }
-
-  getMatchesOverview(page = 1, limit = 20, when = '', seriesId = '', search = ''): Observable<any> {
-    return this.complianceGet('getmatchesoverview', new HttpParams()
-      .set('page', page).set('limit', limit).set('when', when).set('series_id', seriesId).set('search', search));
-  }
-
-  getMatchContests(matchId: string | number): Observable<any> {
-    return this.complianceGet(`getmatchcontests/${encodeURIComponent(String(matchId))}`, new HttpParams());
-  }
+  /* ================================================================
+   * SUPPORT TICKETS SCREEN
+   * ================================================================ */
 
   getSupportTickets(page = 1, limit = 20, filter = '', category = '', priority = '', search = ''): Observable<any> {
     return this.complianceGet('getsupporttickets', new HttpParams()
@@ -522,9 +761,59 @@ export class AdminService {
     return this.complianceGet(`getsupportticketbyid/${encodeURIComponent(String(ticketId))}`, new HttpParams());
   }
 
-  getAuditOverview(page = 1, limit = 20): Observable<any> {
-    return this.complianceGet('getauditoverview', new HttpParams().set('page', page).set('limit', limit));
+  createSupportTicket(payload: {
+    user_id: string | number;
+    category: string;
+    subject: string;
+    message: string;
+    priority: string;
+  }): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.post(`${this.Base_URL}/createsupportticket`, payload, { headers });
   }
+
+  replySupportTicket(ticketId: string | number, payload: { message: string }): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.post(`${this.Base_URL}/replysupportticket/${encodeURIComponent(String(ticketId))}`, payload, { headers });
+  }
+
+  updateSupportTicket(ticketId: string | number, payload: { status: number; priority: string }): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.put(`${this.Base_URL}/updatesupportticket/${encodeURIComponent(String(ticketId))}`, payload, { headers });
+  }
+
+  escalateSupportTicket(ticketId: string | number, payload: { note: string }): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.post(`${this.Base_URL}/escalatesupportticket/${encodeURIComponent(String(ticketId))}`, payload, { headers });
+  }
+
+  /* ================================================================
+   * NOTIFICATIONS SCREEN
+   * ================================================================ */
+
+  notifyUsers(payload: { user_ids: Array<string | number>; title: string; message: string }): Observable<any> {
+    const token = this.tokens.get();
+    const headers = token
+      ? new HttpHeaders().set('Authorization', `Bearer ${token}`)
+      : new HttpHeaders();
+    return this.http.post(`${this.Base_URL}/notifyusers`, payload, { headers });
+  }
+
+  /* ================================================================
+   * AUDIT & REPORTS SCREEN
+   * ================================================================ */
 
   getAuditLogs(page = 1, limit = 20, category = '', adminId = '', from = '', to = '', search = ''): Observable<any> {
     return this.complianceGet('getauditlogs', new HttpParams()

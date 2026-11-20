@@ -223,13 +223,14 @@
         </button>
       </div>
       <div class="topbar-actions" *ngIf="activeRgRecordsPage as rgPage">
-        <button class="topbar-button" type="button" (click)="rgPage.handleTopbarAction('primary')">
-          {{ rgPage.page.primaryAction }}
+        <button class="topbar-button" type="button" [disabled]="rgPage.isAlertsView && rgPage.rgAlertSubmitting"
+          (click)="rgPage.handleTopbarAction('primary')">
+          {{ rgPage.isAlertsView && rgPage.rgAlertSubmitting ? 'Updating…' : rgPage.page.primaryAction }}
         </button>
         <button class="topbar-button" type="button" [class.topbar-primary]="true"
-          [disabled]="rgPage.isApplyingDueLimitChanges"
+          [disabled]="rgPage.isApplyingDueLimitChanges || rgPage.bulkInterventionSubmitting || rgPage.bulkAlertSubmitting"
           (click)="rgPage.handleTopbarAction('secondary')">
-          {{ rgPage.isApplyingDueLimitChanges ? 'Applying…' : rgPage.page.secondaryAction }}
+          {{ rgPage.isApplyingDueLimitChanges ? 'Applying…' : (rgPage.bulkInterventionSubmitting || rgPage.bulkAlertSubmitting) ? 'Sending…' : rgPage.page.secondaryAction }}
         </button>
       </div>
       <div class="topbar-actions" *ngIf="activeRgMonitorPage as rgMonitor">

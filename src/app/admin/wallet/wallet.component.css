@@ -730,6 +730,10 @@ p {
   min-height: calc(100vh - 260px);
 }
 
+.inactive-reminder-form { display:grid; gap:8px; margin:10px 0; padding:10px; border:1px solid var(--wallet-border); border-radius:8px; }
+.inactive-reminder-form label { display:grid; gap:5px; }
+.inactive-reminder-form textarea { box-sizing:border-box; width:100%; min-width:0; }
+
 .notice {
   margin: 0;
   padding: 7px 12px;

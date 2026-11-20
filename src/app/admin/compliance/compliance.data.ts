@@ -142,7 +142,7 @@ const pages: Record<string, CompliancePage> = {
     tableTitle: 'Source of Funds Cases',
     tableDescription: 'Triggered at deposit threshold or AML referral',
     filters: [{ label: 'All', key: 'all' }, { label: 'Pending', key: 'pending' }, { label: 'Evidence Received', key: 'evidence' }, { label: 'Overdue', key: 'overdue' }, { label: 'Cleared', key: 'cleared' }],
-    columns: ['User', 'Trigger', 'Amount', 'Requested', 'Evidence', 'Age', 'Reviewer', 'Status'],
+    columns: ['User', 'Trigger', 'Amount', 'Requested', 'Evidence', 'Age', 'Reviewer', 'Status', 'Action'],
     rows: [
       row([person('Tom Whitlock', 'UK-48994', 'TW'), { text: 'Dep pattern £3,200' }, mono('£3,200'), mono('May 4'), { text: 'Salary slip pending', tone: 'amber' }, mono('7d'), { text: 'Harman M.' }, badge('Pending', 'amber')], ['pending']),
       row([person('Aaron Khouri', 'UK-48820', 'AK'), { text: 'AML case CMP-9178' }, mono('£4,400'), mono('May 2'), { text: 'None received', tone: 'muted' }, mono('9d'), { text: 'Harman M.' }, badge('Overdue', 'red')], ['overdue'], true),

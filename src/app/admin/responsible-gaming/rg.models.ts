@@ -23,6 +23,10 @@ export interface RgRow {
   userId?: string | number;
   depositLimit?: number;
   limitRequestId?: string | number;
+  selfExclusionId?: string | number;
+  alertId?: string | number;
+  gamstopStatus?: string;
+  marketingBlocked?: boolean;
   cells: RgCell[];
   filters: string[];
   highlight?: boolean;

@@ -584,6 +584,10 @@ h3 {
   cursor: pointer;
 }
 
+.decision-actions button:disabled { opacity: .55; cursor: wait; }
+.verification-request-form { display: grid; gap: 7px; }
+.verification-request-form .decision-actions { margin-top: 0; }
+
 .decision-actions .reject-button {
   border-color: rgba(255, 59, 71, .35);
   color: #ff8c95;

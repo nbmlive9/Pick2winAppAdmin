@@ -6,7 +6,7 @@
   <ng-container *ngIf="!loading">
     <ng-container *ngIf="!overviewError">
     <section class="metric-grid" aria-label="Responsible gaming overview statistics">
-      <app-rg-metric-card *ngFor="let metric of metrics" [metric]="metric"></app-rg-metric-card>
+      <app-ops-metric-card *ngFor="let metric of metrics" [metric]="metric"></app-ops-metric-card>
     </section>
 
     <section class="panel loss-panel">

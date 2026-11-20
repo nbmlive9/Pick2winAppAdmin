@@ -1,6 +1,6 @@
 <div class="records-page">
   <section class="metric-grid" aria-label="Responsible gaming statistics">
-    <app-rg-metric-card *ngFor="let metric of page.metrics" [metric]="metric"></app-rg-metric-card>
+    <app-ops-metric-card *ngFor="let metric of page.metrics" [metric]="metric"></app-ops-metric-card>
   </section>
 
   <section class="records-card">
@@ -26,6 +26,110 @@
     <p class="notice" role="status" *ngIf="notice">{{ notice }}</p>
     <p class="notice" role="alert" *ngIf="errorNotice">{{ errorNotice }}</p>
 
+    <div class="rg-screen-actions" *ngIf="isSelfExclusionView || isAlertsView">
+      <button *ngIf="isSelfExclusionView" type="button" class="page-button"
+        (click)="openCreateSelfExclusionForm()" [disabled]="selfExclusionSubmitting">
+        Create Self-Exclusion
+      </button>
+      <ng-container *ngIf="isAlertsView">
+        <button type="button" class="page-button" (click)="scanRgAlerts()" [disabled]="scanningRgAlerts">
+          {{ scanningRgAlerts ? 'Scanning…' : 'Scan RG Alerts' }}
+        </button>
+        <button type="button" class="page-button" (click)="markAllRgAlertsRead()" [disabled]="rgAlertSubmitting">
+          {{ rgAlertSubmitting ? 'Updating…' : 'Mark All Read' }}
+        </button>
+      </ng-container>
+    </div>
+
+    <form class="rg-mutation-form" *ngIf="isSelfExclusionView && showCreateSelfExclusionForm" (submit)="submitCreateSelfExclusion($event)">
+      <div class="deposit-limit-form-heading"><strong>Create self-exclusion</strong></div>
+      <label for="new-exclusion-user-id">User ID</label>
+      <input id="new-exclusion-user-id" type="text" inputmode="numeric" required
+        [value]="selfExclusionUserId" (input)="selfExclusionUserId = $any($event.target).value" />
+      <label for="new-exclusion-duration">Duration</label>
+      <input id="new-exclusion-duration" type="text" required
+        [value]="selfExclusionDuration" (input)="selfExclusionDuration = $any($event.target).value" />
+      <label for="new-exclusion-gamstop">GAMSTOP status</label>
+      <input id="new-exclusion-gamstop" type="text" required
+        [value]="selfExclusionGamstopStatus" (input)="selfExclusionGamstopStatus = $any($event.target).value" />
+      <label for="new-exclusion-reason">Reason</label>
+      <textarea id="new-exclusion-reason" rows="2" required
+        [value]="selfExclusionReason" (input)="selfExclusionReason = $any($event.target).value"></textarea>
+      <div class="deposit-limit-form-actions">
+        <button type="button" class="page-button" (click)="showCreateSelfExclusionForm = false">Cancel</button>
+        <button type="submit" class="page-button" [disabled]="selfExclusionSubmitting || !selfExclusionUserId.trim() || !selfExclusionDuration.trim() || !selfExclusionGamstopStatus.trim() || !selfExclusionReason.trim()">
+          {{ selfExclusionSubmitting ? 'Creating…' : 'Create Self-Exclusion' }}
+        </button>
+      </div>
+    </form>
+
+    <form class="rg-mutation-form" *ngIf="isSelfExclusionView && selectedSelfExclusion" (submit)="submitSelfExclusionUpdate($event)">
+      <div class="deposit-limit-form-heading">
+        <strong>Update self-exclusion for {{ selectedSelfExclusion.name }}</strong>
+        <span>Exclusion ID {{ selectedSelfExclusion.selfExclusionId }}</span>
+      </div>
+      <label for="edit-exclusion-gamstop">GAMSTOP status</label>
+      <input id="edit-exclusion-gamstop" type="text" required
+        [value]="selfExclusionUpdateGamstopStatus" (input)="selfExclusionUpdateGamstopStatus = $any($event.target).value" />
+      <label class="force-limit-label" for="edit-exclusion-marketing">
+        <input id="edit-exclusion-marketing" type="checkbox" [checked]="selfExclusionMarketingBlocked"
+          (change)="selfExclusionMarketingBlocked = $any($event.target).checked" />
+        Block marketing
+      </label>
+      <div class="deposit-limit-form-actions">
+        <button type="button" class="page-button" (click)="selectedSelfExclusion = null">Cancel</button>
+        <button type="submit" class="page-button" [disabled]="selfExclusionSubmitting || !selfExclusionUpdateGamstopStatus.trim()">
+          {{ selfExclusionSubmitting ? 'Saving…' : 'Save exclusion' }}
+        </button>
+      </div>
+    </form>
+
+    <form class="rg-mutation-form" *ngIf="isAlertsView && selectedRgAlert" (submit)="submitRgAlertUpdate($event)">
+      <div class="deposit-limit-form-heading">
+        <strong>Update RG alert for {{ selectedRgAlert.name }}</strong>
+        <span>Alert ID {{ selectedRgAlert.alertId }}</span>
+      </div>
+      <label for="edit-rg-alert-status">Status</label>
+      <input id="edit-rg-alert-status" type="text" required
+        [value]="rgAlertStatus" (input)="rgAlertStatus = $any($event.target).value" />
+      <label for="edit-rg-alert-action">Action taken</label>
+      <textarea id="edit-rg-alert-action" rows="2" required
+        [value]="rgAlertActionTaken" (input)="rgAlertActionTaken = $any($event.target).value"></textarea>
+      <div class="deposit-limit-form-actions">
+        <button type="button" class="page-button" (click)="selectedRgAlert = null">Cancel</button>
+        <button type="submit" class="page-button" [disabled]="rgAlertSubmitting || !rgAlertStatus.trim() || !rgAlertActionTaken.trim()">
+          {{ rgAlertSubmitting ? 'Saving…' : 'Save alert' }}
+        </button>
+      </div>
+    </form>
+
+    <form class="rg-mutation-form" *ngIf="isAlertsView && bulkAlertFormOpen" (submit)="submitBulkAlertIntervention($event)">
+      <div class="deposit-limit-form-heading">
+        <strong>Create interventions for selected alerts</strong>
+        <span>{{ selectedBulkAlerts.length }} selected</span>
+      </div>
+      <fieldset class="bulk-user-picker">
+        <legend>Select alerts on this page</legend>
+        <label class="bulk-user-option" *ngFor="let row of filteredRows">
+          <input type="checkbox" [disabled]="row.alertId === undefined || row.alertId === null || row.alertId === '' || bulkAlertSubmitting"
+            [checked]="isBulkAlertSelected(row)" (change)="toggleBulkAlert(row, $any($event.target).checked)" />
+          <span>{{ row.name }} <small>(Alert {{ row.alertId ?? 'unavailable' }})</small></span>
+        </label>
+      </fieldset>
+      <label for="bulk-alert-title">Title</label>
+      <input id="bulk-alert-title" type="text" required
+        [value]="bulkAlertTitle" (input)="bulkAlertTitle = $any($event.target).value" />
+      <label for="bulk-alert-message">Message</label>
+      <textarea id="bulk-alert-message" rows="3" required
+        [value]="bulkAlertMessage" (input)="bulkAlertMessage = $any($event.target).value"></textarea>
+      <div class="deposit-limit-form-actions">
+        <button type="button" class="page-button" (click)="cancelBulkAlertIntervention()">Cancel</button>
+        <button type="submit" class="page-button" [disabled]="bulkAlertSubmitting || selectedBulkAlerts.length === 0 || !bulkAlertTitle.trim() || !bulkAlertMessage.trim()">
+          {{ bulkAlertSubmitting ? 'Sending…' : 'Send alert intervention' }}
+        </button>
+      </div>
+    </form>
+
     <form class="deposit-limit-edit-form" *ngIf="isDepositLimitsView && selectedLimitRow" (submit)="submitDepositLimit($event)">
       <div class="deposit-limit-form-heading">
         <strong>Update limit for {{ selectedLimitRow.name }}</strong>
@@ -42,6 +146,58 @@
         <button type="button" class="page-button" (click)="cancelDepositLimitForm()">Cancel</button>
         <button type="submit" class="page-button" [disabled]="depositLimitSubmitting || !depositLimitValue || !depositLimitReason.trim()">
           {{ depositLimitSubmitting ? 'Saving…' : 'Save limit' }}
+        </button>
+      </div>
+    </form>
+
+    <form class="bulk-intervention-form" *ngIf="isMonthlyLossView && showBulkInterventionForm" (submit)="submitBulkIntervention($event)">
+      <div class="deposit-limit-form-heading">
+        <strong>Send intervention to selected users</strong>
+        <span>{{ selectedBulkUsers.length }} selected</span>
+      </div>
+      <fieldset class="bulk-user-picker">
+        <legend>Select users on this page</legend>
+        <label class="bulk-user-option" *ngFor="let row of filteredRows">
+          <input type="checkbox" [disabled]="row.userId === undefined || row.userId === null || row.userId === '' || bulkInterventionSubmitting"
+            [checked]="isBulkUserSelected(row)" (change)="toggleBulkInterventionUser(row, $any($event.target).checked)" />
+          <span>{{ row.name }} <small>(ID {{ row.userId ?? 'unavailable' }})</small></span>
+        </label>
+      </fieldset>
+      <label for="bulk-intervention-channel">Channel</label>
+      <input id="bulk-intervention-channel" name="channel" type="text" maxlength="80" required
+        [value]="bulkInterventionChannel" (input)="bulkInterventionChannel = $any($event.target).value" />
+      <label for="bulk-intervention-title">Title</label>
+      <input id="bulk-intervention-title" name="title" type="text" maxlength="200" required
+        [value]="bulkInterventionTitle" (input)="bulkInterventionTitle = $any($event.target).value" />
+      <label for="bulk-intervention-message">Message</label>
+      <textarea id="bulk-intervention-message" name="message" rows="3" maxlength="2000" required
+        [value]="bulkInterventionMessage" (input)="bulkInterventionMessage = $any($event.target).value"></textarea>
+      <div class="deposit-limit-form-actions">
+        <button type="button" class="page-button" (click)="cancelBulkInterventionForm()">Cancel</button>
+        <button type="submit" class="page-button" [disabled]="bulkInterventionSubmitting || selectedBulkUsers.length === 0 || !bulkInterventionChannel.trim() || !bulkInterventionTitle.trim() || !bulkInterventionMessage.trim()">
+          {{ bulkInterventionSubmitting ? 'Sending…' : 'Send bulk intervention' }}
+        </button>
+      </div>
+    </form>
+
+    <form class="intervention-edit-form" *ngIf="isMonthlyLossView && selectedInterventionUser" (submit)="submitIntervention($event)">
+      <div class="deposit-limit-form-heading">
+        <strong>Create intervention for {{ selectedInterventionUser.name }}</strong>
+        <span>User ID {{ selectedInterventionUser.userId }}</span>
+      </div>
+      <label for="intervention-channel">Channel</label>
+      <input id="intervention-channel" name="channel" type="text" maxlength="80" required
+        [value]="interventionChannel" (input)="interventionChannel = $any($event.target).value" />
+      <label for="intervention-title">Title</label>
+      <input id="intervention-title" name="title" type="text" maxlength="200" required
+        [value]="interventionTitle" (input)="interventionTitle = $any($event.target).value" />
+      <label for="intervention-message">Message</label>
+      <textarea id="intervention-message" name="message" rows="3" maxlength="2000" required
+        [value]="interventionMessage" (input)="interventionMessage = $any($event.target).value"></textarea>
+      <div class="deposit-limit-form-actions">
+        <button type="button" class="page-button" (click)="cancelInterventionForm()">Cancel</button>
+        <button type="submit" class="page-button" [disabled]="interventionSubmitting || !interventionChannel.trim() || !interventionTitle.trim() || !interventionMessage.trim()">
+          {{ interventionSubmitting ? 'Sending…' : 'Send intervention' }}
         </button>
       </div>
     </form>
@@ -74,12 +230,12 @@
           <tr>
             <th scope="col">User</th>
             <th scope="col" *ngFor="let heading of page.columns">{{ heading }}</th>
-            <th scope="col" *ngIf="isDepositLimitsView || isLimitChangesView">Action</th>
+            <th scope="col" *ngIf="isDepositLimitsView || isLimitChangesView || isSelfExclusionView || isAlertsView">Action</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngIf="loading">
-            <td class="empty-state" [attr.colspan]="page.columns.length + 1 + (isDepositLimitsView || isLimitChangesView ? 1 : 0)">
+            <td class="empty-state" [attr.colspan]="page.columns.length + 1 + (isDepositLimitsView || isLimitChangesView || isSelfExclusionView || isAlertsView ? 1 : 0)">
               {{ isLimitChangesView ? 'Loading limit-change records…' : isMonthlyLossView ? 'Loading monthly-loss users…' : isSelfExclusionView ? 'Loading self-exclusion records…' : isAlertsView ? 'Loading responsible-gaming alerts…' : 'Loading deposit-limit records…' }}
             </td>
           </tr>
@@ -96,7 +252,8 @@
             <td *ngFor="let cell of row.cells">
               <button *ngIf="cell.action" type="button" class="row-action"
                 [ngClass]="'tone-' + (cell.tone || 'muted')"
-                (click)="handleRowAction(cell.value, row.name)">{{ cell.value }}</button>
+                [disabled]="cell.value === 'Intervene' && (row.userId === undefined || row.userId === null || row.userId === '' || interventionSubmitting)"
+                (click)="handleRowAction(cell.value, row)">{{ cell.value }}</button>
               <span *ngIf="cell.badge && !cell.action" class="cell-badge"
                 [ngClass]="'tone-' + (cell.tone || 'muted')">{{ cell.value }}</span>
               <span *ngIf="!cell.badge && !cell.action" class="cell-value"
@@ -112,9 +269,17 @@
               <button type="button" class="row-action row-reject-action" [disabled]="row.limitRequestId === undefined || row.limitRequestId === null || row.limitRequestId === '' || applyLimitSubmitting"
                 (click)="openRejectLimitForm(row)">Reject One</button>
             </td>
+            <td *ngIf="isSelfExclusionView">
+              <button type="button" class="row-action" [disabled]="row.selfExclusionId === undefined || row.selfExclusionId === null || row.selfExclusionId === '' || selfExclusionSubmitting"
+                (click)="openSelfExclusionUpdate(row)">Update</button>
+            </td>
+            <td *ngIf="isAlertsView">
+              <button type="button" class="row-action" [disabled]="row.alertId === undefined || row.alertId === null || row.alertId === '' || rgAlertSubmitting"
+                (click)="openRgAlertUpdate(row)">Update alert</button>
+            </td>
           </tr>
           <tr *ngIf="!loading && filteredRows.length === 0">
-              <td class="empty-state" [attr.colspan]="page.columns.length + 1 + (isDepositLimitsView || isLimitChangesView ? 1 : 0)">
+              <td class="empty-state" [attr.colspan]="page.columns.length + 1 + (isDepositLimitsView || isLimitChangesView || isSelfExclusionView || isAlertsView ? 1 : 0)">
               <strong>{{ errorNotice ? (isLimitChangesView ? 'Limit changes are unavailable' : isMonthlyLossView ? 'Monthly-loss data is unavailable' : isSelfExclusionView ? 'Self-exclusion data is unavailable' : isAlertsView ? 'RG alerts are unavailable' : 'Deposit limits are unavailable') : 'No matching records' }}</strong>
               <span *ngIf="!errorNotice">Try another filter or search term.</span>
             </td>

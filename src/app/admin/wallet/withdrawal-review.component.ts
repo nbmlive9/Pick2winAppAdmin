@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { Observable } from 'rxjs';
 import { AdminService } from '../../core/services/admin.service';
 
 interface Withdrawal {
@@ -38,6 +39,10 @@ export class WithdrawalReviewComponent implements OnInit {
   searchTerm = '';
   notice = '';
   error = '';
+  withdrawalNote = '';
+  verificationMessage = '';
+  showVerificationForm = false;
+  actionSubmitting = false;
   loading = false;
   detailLoading = false;
   selectedId = '';
@@ -129,6 +134,9 @@ export class WithdrawalReviewComponent implements OnInit {
   selectWithdrawal(row: Withdrawal): void {
     if (this.selectedId === row.id && this.detail) return;
     this.selectedId = row.id;
+    this.withdrawalNote = '';
+    this.verificationMessage = '';
+    this.showVerificationForm = false;
     this.loadReview(row.id);
   }
 
@@ -173,7 +181,50 @@ export class WithdrawalReviewComponent implements OnInit {
     this.notice = `${action.label} is not available until a withdrawal action endpoint is provided.`;
   }
 
-  handleDecision(decision: string): void {
-    this.notice = `${decision} selected for ${this.selectedWithdrawal?.name ?? 'the selected request'}. No decision endpoint was provided.`;
+  holdSelectedWithdrawal(): void {
+    const note = this.withdrawalNote.trim();
+    if (!note) { this.error = 'Enter a note before holding this withdrawal.'; return; }
+    this.runAction(this.admin.holdWithdrawal(this.selectedId, note), 'Withdrawal put on hold.');
+  }
+
+  releaseSelectedWithdrawal(): void {
+    const note = this.withdrawalNote.trim();
+    if (!note) { this.error = 'Enter a note before releasing this withdrawal.'; return; }
+    this.runAction(this.admin.releaseWithdrawal(this.selectedId, note), 'Withdrawal released.');
+  }
+
+  addSelectedWithdrawalNote(): void {
+    const note = this.withdrawalNote.trim();
+    if (!note) { this.error = 'Enter a note to add to this withdrawal.'; return; }
+    this.runAction(this.admin.addWithdrawalNote(this.selectedId, note), 'Withdrawal note added.');
+  }
+
+  submitVerificationRequest(): void {
+    const message = this.verificationMessage.trim();
+    if (!message) { this.error = 'Enter a message for the verification request.'; return; }
+    this.runAction(this.admin.requestWithdrawalVerification(this.selectedId, message), 'Verification request sent.');
+  }
+
+  private runAction(request: Observable<any>, successMessage: string): void {
+    if (!this.selectedId || this.actionSubmitting) return;
+    this.actionSubmitting = true;
+    this.error = '';
+    this.notice = '';
+    request.subscribe({
+      next: response => {
+        this.actionSubmitting = false;
+        if (response?.success === false) { this.error = response.message || 'The withdrawal action was not completed.'; return; }
+        this.notice = response?.message || successMessage;
+        this.showVerificationForm = false;
+        this.withdrawalNote = '';
+        this.verificationMessage = '';
+        this.loadQueue();
+        this.loadReview(this.selectedId);
+      },
+      error: error => {
+        this.actionSubmitting = false;
+        this.error = error?.error?.message || (error?.status === 0 ? 'The Wallet API could not be reached.' : `Withdrawal action failed (HTTP ${error?.status ?? 'error'}).`);
+      },
+    });
   }
 }

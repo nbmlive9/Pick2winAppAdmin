@@ -1,15 +1,6 @@
 <div class="compliance-page">
   <section class="metric-grid" [class.metric-grid-five]="pageKey === 'cases'" aria-label="Compliance overview">
-    <article class="metric-card" *ngFor="let metric of page.metrics">
-      <span class="metric-label">{{ metric.label }}</span>
-      <span class="metric-change" *ngIf="metric.change">↑ {{ metric.change }}</span>
-      <strong class="metric-value">{{ metric.value }}</strong>
-      <span class="metric-detail">{{ metric.detail }}</span>
-      <svg *ngIf="metric.points" class="metric-sparkline" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
-        <polygon [attr.points]="metric.points + ' 100,32 0,32'" [attr.fill]="metric.color" fill-opacity=".12"></polygon>
-        <polyline [attr.points]="metric.points" [attr.stroke]="metric.color"></polyline>
-      </svg>
-    </article>
+    <app-ops-metric-card *ngFor="let metric of page.metrics" [metric]="metric"></app-ops-metric-card>
   </section>
 
   <section class="panel table-panel">
@@ -26,6 +17,38 @@
     </header>
     <p *ngIf="notice" class="notice" role="status">{{ notice }}</p>
     <p *ngIf="errorNotice" class="notice" role="alert">{{ errorNotice }}</p>
+
+    <form *ngIf="pageKey === 'cases' && showCreateCaseForm" class="compliance-form" (ngSubmit)="submitCreateCase()">
+      <h3>Create compliance case</h3>
+      <label>User ID<input name="createUserId" [(ngModel)]="createCaseUserId" required></label>
+      <label>Case type<select name="createCaseType" [(ngModel)]="createCaseType"><option value="aml">AML</option><option value="sof">Source of funds</option><option value="kyc1">KYC1</option><option value="fraud">Fraud</option></select></label>
+      <label>Title<input name="createTitle" [(ngModel)]="createCaseTitle" required></label>
+      <label>Trigger text<input name="createTrigger" [(ngModel)]="createCaseTrigger"></label>
+      <label>Risk score<input name="createRisk" type="number" min="0" max="100" [(ngModel)]="createCaseRiskScore"></label>
+      <label>Amount<input name="createAmount" type="number" min="0" [(ngModel)]="createCaseAmount"></label>
+      <label class="form-wide">Note<textarea name="createNote" [(ngModel)]="createCaseNote" rows="2"></textarea></label>
+      <div class="form-actions"><button type="submit" [disabled]="caseMutationSubmitting">{{ caseMutationSubmitting ? 'Creating…' : 'Create case' }}</button><button type="button" (click)="showCreateCaseForm = false">Cancel</button></div>
+    </form>
+
+    <form *ngIf="pageKey === 'sof' && showSofChaseForm" class="compliance-form" (ngSubmit)="submitSofChase()">
+      <h3>Chase overdue source-of-funds requests</h3>
+      <label>Overdue after (days)<input name="chaseDays" type="number" min="1" step="1" [(ngModel)]="sofChaseDays" required></label>
+      <div class="form-actions"><button type="submit" [disabled]="sofChaseSubmitting">{{ sofChaseSubmitting ? 'Sending…' : 'Send chase' }}</button><button type="button" (click)="showSofChaseForm = false">Cancel</button></div>
+    </form>
+
+    <form *ngIf="pageKey === 'kyc1' && kyc1User" class="compliance-form compact-form" (ngSubmit)="submitKyc1Update()">
+      <h3>Review KYC1 for {{ kyc1User.cells[0].text }}</h3>
+      <label>Status<select name="kycStatus" [(ngModel)]="kyc1Status"><option value="approved">Approved</option><option value="rejected">Rejected</option></select></label>
+      <label class="form-wide">Reason<input name="kycReason" [(ngModel)]="kyc1Reason" required></label>
+      <div class="form-actions"><button type="submit" [disabled]="kyc1Submitting">{{ kyc1Submitting ? 'Saving…' : 'Save review' }}</button><button type="button" (click)="kyc1User = null">Cancel</button></div>
+    </form>
+
+    <form *ngIf="(pageKey === 'sof' || pageKey === 'sofCandidates') && sofUser" class="compliance-form compact-form" (ngSubmit)="submitSofUpdate()">
+      <h3>Update source-of-funds for {{ sofUser.cells[0].text }}</h3>
+      <label class="checkbox-label"><input name="sofVerified" type="checkbox" [(ngModel)]="sofVerified"> Verified</label>
+      <label class="form-wide">Reason<input name="sofReason" [(ngModel)]="sofReason" required></label>
+      <div class="form-actions"><button type="submit" [disabled]="sofSubmitting">{{ sofSubmitting ? 'Saving…' : 'Save SoF review' }}</button><button type="button" (click)="sofUser = null">Cancel</button></div>
+    </form>
 
     <div class="cases-layout" *ngIf="pageKey === 'cases'; else fullTable">
       <div class="table-scroll">
@@ -55,6 +78,28 @@
           </dl>
         </ng-container>
         <ng-template #noCaseSelected><p>Select a case row to load its details.</p></ng-template>
+        <div class="case-action-controls" *ngIf="selectedCaseId != null">
+          <button type="button" (click)="openCaseForm('update')">Update case</button>
+          <button type="button" (click)="openCaseForm('note')">Add note</button>
+          <button type="button" (click)="openCaseForm('action')">Case action</button>
+        </div>
+        <form *ngIf="selectedCaseForm === 'update'" class="compliance-form detail-form" (ngSubmit)="submitCaseUpdate()">
+          <label>Status<select name="caseStatus" [(ngModel)]="caseUpdateStatus"><option value="investigating">Investigating</option><option value="open">Open</option><option value="on_hold">On hold</option><option value="closed">Closed</option></select></label>
+          <label>Assigned to (user ID)<input name="caseAssigned" [(ngModel)]="caseAssignedTo" required></label>
+          <label class="form-wide">Note<textarea name="caseUpdateNote" [(ngModel)]="caseUpdateNote" rows="2"></textarea></label>
+          <div class="form-actions"><button type="submit" [disabled]="caseMutationSubmitting">{{ caseMutationSubmitting ? 'Saving…' : 'Save changes' }}</button><button type="button" (click)="selectedCaseForm = null">Cancel</button></div>
+        </form>
+        <form *ngIf="selectedCaseForm === 'note'" class="compliance-form detail-form" (ngSubmit)="submitCaseNote()">
+          <label class="form-wide">Case note<textarea name="caseNote" [(ngModel)]="caseNoteText" rows="3" required></textarea></label>
+          <div class="form-actions"><button type="submit" [disabled]="caseMutationSubmitting">{{ caseMutationSubmitting ? 'Adding…' : 'Add note' }}</button><button type="button" (click)="selectedCaseForm = null">Cancel</button></div>
+        </form>
+        <form *ngIf="selectedCaseForm === 'action'" class="compliance-form detail-form" (ngSubmit)="submitCaseAction()">
+          <label>Action<select name="caseAction" [(ngModel)]="caseActionType"><option value="hold">Hold</option><option value="request_docs">Request documents</option><option value="escalate">Escalate</option><option value="file_sar">File SAR</option><option value="suspend_all">Suspend all</option><option value="clear">Clear</option></select></label>
+          <label *ngIf="caseActionType === 'file_sar'">SAR reference<input name="sarRef" [(ngModel)]="caseSarRef" required></label>
+          <label *ngIf="caseActionType === 'request_docs'" class="form-wide">Message<textarea name="actionMessage" [(ngModel)]="caseActionMessage" rows="3" required></textarea></label>
+          <label *ngIf="caseActionType !== 'request_docs'" class="form-wide">Note<textarea name="actionNote" [(ngModel)]="caseActionNote" rows="2"></textarea></label>
+          <div class="form-actions"><button type="submit" [disabled]="caseActionSubmitting">{{ caseActionSubmitting ? 'Submitting…' : 'Submit action' }}</button><button type="button" (click)="selectedCaseForm = null">Cancel</button></div>
+        </form>
       </aside>
     </div>
 

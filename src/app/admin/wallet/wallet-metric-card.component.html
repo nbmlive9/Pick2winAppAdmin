@@ -1,8 +1,0 @@
-<span class="eyebrow">{{ metric.label }}</span>
-<span class="metric-change" *ngIf="metric.change">↑ {{ metric.change }}</span>
-<strong class="metric-value">{{ metric.value }}</strong>
-<span class="metric-detail">{{ metric.detail }}</span>
-<svg *ngIf="metric.spark.length > 1" class="metric-spark" viewBox="0 0 100 32" preserveAspectRatio="none" aria-hidden="true">
-  <polygon [attr.points]="points + ' 100,32 0,32'" [attr.fill]="metric.color" fill-opacity=".12"></polygon>
-  <polyline [attr.points]="points" [attr.stroke]="metric.color"></polyline>
-</svg>

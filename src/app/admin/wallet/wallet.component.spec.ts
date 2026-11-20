@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Data } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
-import { WalletMetricCardComponent } from './wallet-metric-card.component';
+import { OpsMetricCardComponent } from '../shared/ops-metric-card.component';
 import { WalletComponent } from './wallet.component';
 
 describe('WalletComponent', () => {
@@ -11,7 +11,7 @@ describe('WalletComponent', () => {
   beforeEach(async () => {
     routeData = new BehaviorSubject<Data>({ view: 'deposits' });
     await TestBed.configureTestingModule({
-      declarations: [WalletComponent, WalletMetricCardComponent],
+      declarations: [WalletComponent, OpsMetricCardComponent],
       imports: [CommonModule],
       providers: [{ provide: ActivatedRoute, useValue: { data: routeData.asObservable() } }],
     }).compileComponents();

@@ -24,6 +24,8 @@ export interface ComplianceRow {
   cells: ComplianceCell[];
   filters: string[];
   highlight?: boolean;
+  caseId?: string | number;
+  userId?: string | number;
 }
 
 export interface ComplianceFilter {
